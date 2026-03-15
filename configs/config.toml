@@ -1,0 +1,3 @@
+[mcp_servers.mstranka]
+url = "https://mcp.v2.mstranka.cz/"
+http_headers = { "X-Api-Key" = "msk_ZDE_VLOŽ_VÁŠ_API_KLÍČ" }
