@@ -154,38 +154,66 @@ git push origin main
 ```
 
 ### **3.2 Formátování HTML pro MCP (DŮLEŽITÉ!)**
-**⚠️ POZOR: HTML se NEMÁ escapovat pro `htmlContent`!**
 
-**Správně (čisté HTML):**
+**⚠️ HLAVNÍ PRAVIDLO: HTML se NEESCAPUJE! Posílej čisté HTML.**
+
+API očekává surové HTML v poli `htmlContent`. Žádné `&lt;`, `&gt;`, `&amp;` — to by rozbilo obsah.
+
+**✅ SPRÁVNĚ:**
 ```bash
-# Čisté HTML, žádné escapování!
-htmlContent="<p>Testovací obsah</p>"
-```
-
-**Špatně (escapované HTML):**
-```bash
-# TOTO NEFUNGUJE! Rozbíjí HTML
-htmlContent="&lt;p&gt;Testovací obsah&lt;/p&gt;"
-```
-
-**Co se ve skutečnosti potřebuje:**
-1. **HTML zůstává čisté** - `<p>Text</p>`
-2. **JSON serializaci řeší nástroje** - `mcporter` nebo framework
-3. **Pokud voláš přes shell**, použij uvozovky: `htmlContent="<p>Text</p>"`
-
-**Příklad správného použití:**
-```bash
-# Správně: čisté HTML v uvozovkách
 mcporter call mstranka.edit_section \
   websiteId="..." \
   sectionId="..." \
-  htmlContent="<h2>Nadpis</h2><p>Obsah článku s <strong>tučným</strong> textem.</p>"
+  name="hero" \
+  htmlContent="<h2>Nadpis</h2><p>Obsah s <strong>tučným</strong> textem.</p>" \
+  title="Nadpis" \
+  showOnPage=true
 ```
 
-**Proč původní sekce byla špatně:**
-- Escapování HTML entit (`<` → `&lt;`) je pro zobrazení HTML jako textu na webové stránce
-- Pro `htmlContent` v API potřebujeme surové HTML
-- JSON speciální znaky (`"`, `\`, `\n`) řeší JSON serializer automaticky
+**❌ ŠPATNĚ — neescapuj HTML entity:**
+```bash
+# TOTO NEFUNGUJE! &lt; a &gt; se uloží jako text, ne jako HTML tagy
+htmlContent="&lt;p&gt;Testovací obsah&lt;/p&gt;"
+```
+
+**❌ ŠPATNĚ — nepoužívej jq/sed na escapování HTML:**
+```bash
+# TOTO JE ŠPATNĚ! jq -Rs escapuje pro JSON string, ale HTML tagy zůstanou.
+# Problém nastane, když to kombinuješ s ručním HTML escapováním.
+HTML_CONTENT=$(cat soubor.html | jq -Rs . | sed 's/^"//;s/"$//')
+```
+
+**Jak to funguje:**
+- `htmlContent` posíláš jako **čisté HTML** v uvozovkách
+- `mcporter` se automaticky postará o JSON serializaci (escapuje `"`, `\`, newlines)
+- Ty se staráš jen o to, aby HTML bylo validní
+
+**Načtení HTML ze souboru:**
+```bash
+# Přečti soubor do proměnné (HTML zůstane čisté)
+HTML_CONTENT=$(cat muj_clanek.html)
+
+# Pošli přes mcporter
+mcporter call mstranka.create_post \
+  websiteId="..." \
+  title="Můj článek" \
+  htmlContent="$HTML_CONTENT"
+```
+
+**Víceřádkové HTML přímo v příkazu:**
+```bash
+mcporter call mstranka.edit_section \
+  websiteId="..." \
+  sectionId="..." \
+  name="hero" \
+  htmlContent="<div class=\"hero-content\">
+    <h1>Hlavní nadpis</h1>
+    <p>Popis stránky</p>
+  </div>" \
+  title="Hero" \
+  showOnPage=true
+```
+Poznámka: uvozovky uvnitř HTML escapuj zpětným lomítkem (`\"`) — to je jediné escapování, které potřebuješ.
 
 ### **3.3 Vytvoření nového článku**
 ```bash
@@ -269,8 +297,13 @@ mcporter call mstranka.list_websites --output json
 
 **Chyba: "Invalid HTML content" nebo JSON parse error**
 ```bash
-# Řešení: Escape HTML
-HTML_CONTENT=$(cat muj_clanek.html | jq -Rs . | sed 's/^"//;s/"$//')
+# Řešení: Zkontroluj, že HTML NENÍ escapované (žádné &lt; &gt; &amp;)
+# Správně: čisté HTML
+HTML_CONTENT=$(cat muj_clanek.html)
+
+# Ověř, že obsah vypadá jako HTML, ne jako escapovaný text:
+echo "$HTML_CONTENT" | head -5
+# Mělo by být: <h1>Nadpis</h1>  (ne: &lt;h1&gt;Nadpis&lt;/h1&gt;)
 ```
 
 **Chyba: "An error occurred invoking 'edit_section'"**
@@ -353,7 +386,7 @@ mcporter call mstranka.edit_section \
 ### **Klíčové body:**
 1. ✅ **Pracuj v workspace-mstrankaV2** - ne v osobním workspace
 2. ✅ **Commituj na GitHub** po každé změně
-3. ✅ **Escapeuj HTML** před odesláním přes MCP
+3. ✅ **Posílej čisté HTML** (neescapuj!) přes MCP
 4. ✅ **Používej správný formát příkazu** pro edit_section
 5. ✅ **Reportuj skutečnou práci** - ne technické detaily
 6. ✅ **Komunikuj s main agentem** při problémech
