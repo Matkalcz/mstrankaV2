@@ -1,0 +1,81 @@
+/* Aktualizace barev - secondaryColor (oranžová) na odkazy a tlačítka */
+
+/* Hero tlačítka - primární tlačítko zůstane bílé s fialovým textem */
+.btn-primary {
+  background: white;
+  color: [WebPrimaryColor];
+  border-color: white;
+}
+
+.btn-primary:hover {
+  background: #f8fafc;
+  color: [WebPrimaryHoverColor];
+}
+
+/* Sekundární tlačítka v hero - použijeme secondaryColor */
+.btn-secondary {
+  background: transparent;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+}
+
+/* Outline tlačítka - použijeme secondaryColor */
+.btn-outline {
+  background: transparent;
+  color: [WebSecondaryColor];
+  border-color: [WebSecondaryColor];
+}
+
+.btn-outline:hover {
+  background: [WebSecondaryColor];
+  color: white;
+}
+
+/* Odkazy v obsahu - použijeme secondaryColor */
+.card-link,
+.footer-links a,
+.built-with a {
+  color: [WebSecondaryColor];
+}
+
+.card-link:hover,
+.footer-links a:hover,
+.built-with a:hover {
+  color: [WebSecondaryHoverColor];
+}
+
+/* Kategorie v blog kártech - použijeme secondaryColor */
+.category {
+  color: [WebSecondaryColor];
+}
+
+/* Badge v podcast sekci - použijeme secondaryColor */
+.badge {
+  background: [WebSecondaryColor];
+  color: white;
+}
+
+/* Hero gradient - zjemněná fialová */
+.hero-section {
+  background: linear-gradient(135deg, [WebPrimaryColor] 0%, #a78bfa 100%);
+}
+
+/* Logo - použijeme primaryColor */
+.logo-icon {
+  color: [WebPrimaryColor];
+}
+
+/* Aktivní navigační odkaz - primaryColor */
+.nav-link.active {
+  color: [WebPrimaryColor];
+}
+
+/* Hover stav navigace - secondaryColor */
+.nav-link:hover:not(.active) {
+  color: [WebSecondaryColor];
+}

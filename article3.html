@@ -1,0 +1,77 @@
+<div class="article-content">
+  <h2>Nový mcporter skill: Přímá integrace s MCP servery</h2>
+  
+  <p>OpenClaw 3.13 přináší revoluční novinku - <strong>mcporter skill</strong>, který umožňuje přímou komunikaci s MCP (Model Context Protocol) servery. Tato integrace otevírá zcela nové možnosti pro vaše AI agenty.</p>
+  
+  <h3>Co je MCP?</h3>
+  <p><strong>Model Context Protocol (MCP)</strong> je otevřený standard pro komunikaci mezi AI modely a externími nástroji. Umožňuje agentům přistupovat k databázím, API, souborovým systémům a dalším zdrojům.</p>
+  
+  <h3>mcporter skill v akci</h3>
+  
+  <h4>Připojení k MCP serveru</h4>
+  <pre><code>mcporter config add mstranka \
+  --transport http \
+  --url https://mcp.v2.mstranka.cz/ \
+  --api-key msk_...</code></pre>
+  
+  <h4>Volání MCP nástrojů</h4>
+  <pre><code>mcporter call mstranka.list_websites</code></pre>
+  
+  <h4>Vytváření obsahu</h4>
+  <pre><code>mcporter call mstranka.create_post \
+  websiteId="..." \
+  title="Můj článek" \
+  content="$(cat obsah.html)"</code></pre>
+  
+  <h3>Praktické využití</h3>
+  
+  <h4>1. Správa webů přes mStranka V2</h4>
+  <p>Váš agent může přímo:</p>
+  <ul>
+    <li>Vytvářet a upravovat články</li>
+    <li>Spravovat kategorie</li>
+    <li>Nahrávat obrázky</li>
+    <li>Publikovat obsah</li>
+  </ul>
+  
+  <h4>2. Automatizované reporty</h4>
+  <p>Denní automatické reporty generované agentem a publikované na web:</p>
+  <pre><code>openclaw cron add --name "daily-blog-post" \
+  --schedule "0 8 * * *" \
+  --command "agent run blog-agent --task 'Vytvoř denní shrnutí novinek'"</code></pre>
+  
+  <h4>3. Multi-platform obsah</h4>
+  <p>Jeden agent může publikovat obsah na více platformách současně:</p>
+  <ul>
+    <li>Blog články na mStranka V2</li>
+    <li>Social media posty</li>
+    <li>Newsletter emaily</li>
+    <li>Dokumentaci na GitHub</li>
+  </ul>
+  
+  <h3>Konfigurace mcporter</h3>
+  
+  <h4>Instalace skillu</h4>
+  <pre><code>openclaw skill install mcporter</code></pre>
+  
+  <h4>Konfigurace agenta</h4>
+  <pre><code>{
+  "name": "Webový agent",
+  "model": "gpt-4",
+  "skills": ["mcporter"],
+  "instructions": "Pomáháš s tvorbou a správou webového obsahu..."
+}</code></pre>
+  
+  <h3>Budoucnost MCP integrace</h3>
+  <p>mcporter je jen začátek. Plánujeme:</p>
+  <ul>
+    <li>Více MCP serverů out-of-the-box</li>
+    <li>Automatické objevování MCP nástrojů</li>
+    <li>GUI pro konfiguraci MCP připojení</li>
+    <li>Templates pro běžné workflow</li>
+  </ul>
+  
+  <div class="article-footer">
+    <p><strong>mcporter skill</strong> je dostupný od verze OpenClaw 3.13. Více informací v <a href="https://docs.openclaw.ai/skills/mcporter">dokumentaci</a>.</p>
+  </div>
+</div>

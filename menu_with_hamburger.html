@@ -1,0 +1,93 @@
+<header class="site-header">
+  <div class="container">
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <a href="/" class="logo">
+          <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          <span class="logo-text">OpenClaw Blog</span>
+        </a>
+        
+        <button class="navbar-toggle" id="navbarToggle" aria-label="Toggle menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+      
+      <div class="navbar-menu" id="navbarMenu">
+        <a href="/" class="nav-link">Domů</a>
+        <a href="/blog" class="nav-link">Všechny články</a>
+        <div class="dropdown">
+          <a href="#" class="nav-link dropdown-toggle">Kategorie</a>
+          <div class="dropdown-menu">
+            <a href="/blog?category=novinky" class="dropdown-item">Novinky</a>
+            <a href="/blog?category=navody" class="dropdown-item">Návody</a>
+            <a href="/blog?category=vyvoj" class="dropdown-item">Vývoj</a>
+            <a href="/blog?category=podcasty" class="dropdown-item">Podcasty</a>
+          </div>
+        </div>
+        <a href="/podcasty" class="nav-link">Podcasty</a>
+        <a href="/o-openclaw" class="nav-link">O projektu</a>
+      </div>
+      
+      <div class="navbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="alert('Vyhledávání připravujeme')">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Hledat
+        </button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const toggle = document.getElementById('navbarToggle');
+  const menu = document.getElementById('navbarMenu');
+  
+  if (toggle && menu) {
+    toggle.addEventListener('click', function() {
+      menu.classList.toggle('active');
+      toggle.classList.toggle('active');
+      document.body.classList.toggle('menu-open');
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!menu.contains(event.target) && !toggle.contains(event.target)) {
+        menu.classList.remove('active');
+        toggle.classList.remove('active');
+        document.body.classList.remove('menu-open');
+      }
+    });
+    
+    // Close menu when clicking a link
+    menu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', function() {
+        menu.classList.remove('active');
+        toggle.classList.remove('active');
+        document.body.classList.remove('menu-open');
+      });
+    });
+  }
+  
+  // Dropdown for mobile
+  const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+  dropdownToggles.forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+      if (window.innerWidth <= 768) {
+        e.preventDefault();
+        const dropdown = this.nextElementSibling;
+        dropdown.classList.toggle('active');
+      }
+    });
+  });
+});
+</script>

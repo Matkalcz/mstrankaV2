@@ -1,0 +1,72 @@
+<div class="article-content">
+  <h2>Začínáme s OpenClaw</h2>
+  
+  <p>OpenClaw je open-source platforma, která vám umožní vytvářet a spravovat osobní AI agenty. V tomto průvodci vás provedeme celým procesem od instalace po první automatizace.</p>
+  
+  <h3>1. Instalace</h3>
+  
+  <h4>Požadavky</h4>
+  <ul>
+    <li>Node.js 18+</li>
+    <li>npm nebo yarn</li>
+    <li>Git</li>
+    <li>Přístup k terminálu</li>
+  </ul>
+  
+  <h4>Instalace přes npm</h4>
+  <pre><code>npm install -g openclaw</code></pre>
+  
+  <h4>Instalace přes Docker</h4>
+  <pre><code>docker run -d --name openclaw \
+  -p 3000:3000 \
+  -v /path/to/config:/app/config \
+  openclaw/openclaw:latest</code></pre>
+  
+  <h3>2. Konfigurace</h3>
+  
+  <h4>První spuštění</h4>
+  <pre><code>openclaw init</code></pre>
+  
+  <p>Tento příkaz vytvoří konfigurační soubory a provede vás základním nastavením.</p>
+  
+  <h4>Klíčové konfigurace</h4>
+  <ul>
+    <li><strong>API klíče</strong> - OpenAI, Anthropic, Google AI</li>
+    <li><strong>Skills</strong> - výběr dovedností pro agenty</li>
+    <li><strong>Workspace</strong> - nastavení pracovního adresáře</li>
+    <li><strong>Agenti</strong> - konfigurace jednotlivých agentů</li>
+  </ul>
+  
+  <h3>3. První agent</h3>
+  
+  <h4>Vytvoření agenta</h4>
+  <pre><code>openclaw agent create muj-agent</code></pre>
+  
+  <h4>Konfigurace agenta</h4>
+  <p>Upravte soubor <code>~/.openclaw/agents/muj-agent.json</code>:</p>
+  <pre><code>{
+  "name": "Můj první agent",
+  "model": "gpt-4",
+  "skills": ["web_search", "file_edit"],
+  "instructions": "Jsi užitečný asistent..."
+}</code></pre>
+  
+  <h3>4. První automatizace</h3>
+  
+  <h4>Příklad: Denní report</h4>
+  <pre><code>openclaw cron add --name "daily-report" \
+  --schedule "0 9 * * *" \
+  --command "agent run muj-agent --task 'Vytvoř denní report'"</code></pre>
+  
+  <h3>5. Pokročilé funkce</h3>
+  <ul>
+    <li><strong>MCP integrace</strong> - připojení k externím službám</li>
+    <li><strong>Coding agent</strong> - pomoc s programováním</li>
+    <li><strong>Webhooky</strong> - reakce na externí události</li>
+    <li><strong>Multi-agent systémy</strong> - spolupráce více agentů</li>
+  </ul>
+  
+  <div class="article-footer">
+    <p>Více informací najdete v <a href="https://docs.openclaw.ai/getting-started">oficiální dokumentaci</a> nebo na <a href="https://discord.gg/clawd">Discord komunitě</a>.</p>
+  </div>
+</div>

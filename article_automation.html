@@ -1,0 +1,114 @@
+<div class="article-content">
+  <h2>Automatizace blogování: Jak OpenClaw publikuje články za vás</h2>
+  
+  <p>Píšete blog a trávíte hodiny nad každým článkem? <strong>OpenClaw s MCP integrací</strong> tohle mění. Naučte se, jak nastavit AI agenta, který bude vytvářet, editovat a publikovat obsah automaticky.</p>
+  
+  <h3>Proč automatizovat blogování?</h3>
+  
+  <ul>
+    <li><strong>Šetří čas</strong>: Místo psaní se věnujte strategii</li>
+    <li><strong>Konzistentní kvalita</strong>: AI udržuje stejný tón a styl</li>
+    <li><strong>Pravidelný obsah</strong>: Žádné výpadky v publikování</li>
+    <li><strong>SEO optimalizace</strong>: Automatické použití klíčových slov</li>
+  </ul>
+  
+  <h3>Nastavení OpenClaw pro automatické blogování</h3>
+  
+  <h4>1. Konfigurace MCP připojení</h4>
+  <pre><code>mcporter config add mstranka \
+  --transport http \
+  --url https://mcp.v2.mstranka.cz/ \
+  --api-key msk_...</code></pre>
+  
+  <h4>2. Vytvoření blog agenta</h4>
+  <pre><code>openclaw agent create blog-agent \
+  --model "gpt-4" \
+  --skills "mcporter,web_search" \
+  --instructions "Jsi redakční asistent specializovaný na blogové články o technologiích. Piš čtivě, poutavě, s důrazem na praktické využití."</code></pre>
+  
+  <h4>3. Automatický workflow</h4>
+  
+  <div class="workflow">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h5>Generování nápadů</h5>
+        <p>Agent analyzuje trendy a navrhne témata:</p>
+        <pre><code>agent run blog-agent --task "Navrhni 5 témat pro článek o AI automatizaci"</code></pre>
+      </div>
+    </div>
+    
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h5>Psaní článku</h5>
+        <p>Agent vytvoří kompletní článek:</p>
+        <pre><code>agent run blog-agent --task "Napiš článek 'Jak začít s MCP integrací' (1500 slov)"</code></pre>
+      </div>
+    </div>
+    
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h5>Publikování přes MCP</h5>
+        <p>Automatické nahrání na web:</p>
+        <pre><code>mcporter call mstranka.create_post \
+  websiteId="..." \
+  title="Jak začít s MCP integrací" \
+  content="$(cat clanek.html)"</code></pre>
+      </div>
+    </div>
+  </div>
+  
+  <h3>Praktický příklad: Týdenní newsletter</h3>
+  
+  <h4>Cron job pro pravidelný obsah</h4>
+  <pre><code>openclaw cron add --name "weekly-tech-news" \
+  --schedule "0 9 * * 1" \  # Každé pondělí v 9:00
+  --command "agent run blog-agent --task 'Vytvoř týdenní přehled novinek z AI a automatizace (800 slov)'"</code></pre>
+  
+  <h4>Co agent vytvoří:</h4>
+  <ol>
+    <li>Shrnutí týdenních novinek z AI světa</li>
+    <li>Praktické tipy pro vývojáře</li>
+    <li>Návody na nové funkce OpenClaw</li>
+    <li>Rozhovory s komunitou (přepis podcastů)</li>
+  </ol>
+  
+  <h3>Kontrola kvality</h3>
+  
+  <p>Automatizace neznamená nekontrolovaný obsah:</p>
+  
+  <h4>Human-in-the-loop</h4>
+  <ul>
+    <li>Agent vytvoří draft</li>
+    <li>Redaktor zkontroluje a upraví</li>
+    <li>Schválený obsah se publikuje</li>
+  </ul>
+  
+  <h4>Automatické kontroly</h4>
+  <ul>
+    <li>SEO optimalizace (klíčová slova, meta tagy)</li>
+    <li>Gramatické korekce</li>
+    <li>Kontrola duplicitního obsahu</li>
+    <li>Odkazování na relevantní články</li>
+  </ul>
+  
+  <h3>Začínáme</h3>
+  
+  <div class="getting-started">
+    <h4>1. Instalace OpenClaw</h4>
+    <pre><code>npm install -g openclaw</code></pre>
+    
+    <h4>2. Nastavení MCP</h4>
+    <pre><code>openclaw skill install mcporter</code></pre>
+    
+    <h4>3. První automatizovaný článek</h4>
+    <pre><code>openclaw agent run blog-agent --task "Napiš úvodní článek o výhodách AI automatizace v blogování"</code></pre>
+  </div>
+  
+  <div class="article-footer">
+    <p><strong>Automatizace blogování</strong> s OpenClaw není sci-fi. Je to realita, která šetří čas a zvyšuje produktivitu. Začněte dnes a uvidíte, jak váš blog roste rychleji.</p>
+    <p>Více informací v <a href="https://docs.openclaw.ai/automation/blog-automation" target="_blank">dokumentaci OpenClaw</a>.</p>
+  </div>
+</div>

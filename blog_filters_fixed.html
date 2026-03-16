@@ -1,0 +1,39 @@
+<div class="blog-page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Blog o OpenClaw</h1>
+      <p class="page-subtitle">Všechny články, návody a novinky z ekosystému OpenClaw</p>
+    </div>
+    
+    <div class="blog-filters">
+      <div class="filter-buttons">
+        <a href="/blog" class="filter-btn active">Všechny články</a>
+        <a href="/novinky" class="filter-btn">Novinky</a>
+        <a href="/navody" class="filter-btn">Návody</a>
+        <a href="/vyvoj" class="filter-btn">Vývoj</a>
+        <a href="/podcasty" class="filter-btn">Podcasty</a>
+      </div>
+    </div>
+    
+    <div class="posts-grid">
+      <posts take="12" order="date" paging="true" pagesize="12">
+        <article class="post-card">
+          <div class="post-header">
+            <span class="post-category">[CategoryName]</span>
+            <span class="post-date">[PublishedDate:dd.MM.yyyy]</span>
+          </div>
+          <h2 class="post-title">[Title]</h2>
+          <p class="post-excerpt">[Perex]</p>
+          <div class="post-footer">
+            <a href="[Url]" class="post-link">Číst celý článek →</a>
+            <span class="read-time">≈ 5 min čtení</span>
+          </div>
+        </article>
+      </posts>
+    </div>
+    
+    <div class="pagination-info">
+      <p>Zobrazujeme <strong>všechny články</strong>. Použijte filtry nahoře pro zobrazení podle kategorie.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "websiteId": "8231d7a5-a150-406b-89b1-b16097fdaa69",
+  "pages": [
+    {
+      "id": "7c833d58-378f-4485-9283-e70f9767adad",
+      "name": "Homepage",
+      "slug": "",
+      "title": "Veterina Turnov - Domů",
+      "sortOrder": 0,
+      "showInMenu": true,
+      "sections": [
+        {
+          "id": "hero-sekce",
+          "name": "Hero",
+          "slug": "hero",
+          "sortOrder": 1,
+          "showOnPage": true,
+          "htmlContent": "<div class=\"hero\"><h1>Veterina Turnov</h1><p>Profesionální péče o vaše mazlíčky</p></div>"
+        },
+        {
+          "id": "sluzby-sekce",
+          "name": "Služby",
+          "slug": "sluzby",
+          "sortOrder": 2,
+          "showOnPage": true,
+          "htmlContent": "<div class=\"services\"><h2>Naše služby</h2><p>Preventivní prohlídky, očkování, chirurgie...</p></div>"
+        }
+      ]
+    },
+    {
+      "id": "kontakt-stránka",
+      "name": "Kontakt",
+      "slug": "kontakt",
+      "title": "Kontakt - Veterina Turnov",
+      "sortOrder": 1,
+      "showInMenu": true,
+      "sections": [
+        {
+          "id": "kontakt-obsah",
+          "name": "Kontaktní informace",
+          "slug": "kontakt-info",
+          "sortOrder": 1,
+          "showOnPage": true,
+          "htmlContent": "<div class=\"contact\"><h2>Kontaktujte nás</h2><p>Telefon: 123 456 789</p></div>"
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "header-block",
+      "name": "Hlavička",
+      "slug": "header",
+      "htmlContent": "<header>Veterina Turnov</header>"
+    },
+    {
+      "id": "footer-block",
+      "name": "Patička",
+      "slug": "footer",
+      "htmlContent": "<footer>© 2026 Veterina Turnov</footer>"
+    }
+  ],
+  "appearance": {
+    "headerContent": "<nav><a href=\"/\">Domů</a> <a href=\"/kontakt\">Kontakt</a></nav>",
+    "footerContent": "<div class=\"footer\">Veterina Turnov</div>",
+    "styleContent": "body { font-family: Arial, sans-serif; }",
+    "primaryColor": "#4f46e5",
+    "secondaryColor": "#10b981"
+  },
+  "settings": {
+    "title": "Veterina Turnov",
+    "subtitle": "Profesionální veterinární péče",
+    "description": "Veterinární klinika v Turnově poskytující komplexní péči o domácí mazlíčky.",
+    "primaryDomain": "veterina.v2.mstranka.cz"
+  }
+}

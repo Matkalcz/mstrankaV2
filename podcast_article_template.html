@@ -1,0 +1,255 @@
+<div class="podcast-article-page">
+  <div class="container">
+    <!-- MP3 Player Section -->
+    <div class="podcast-player-section">
+      <div class="podcast-player">
+        <!-- Player header -->
+        <div class="player-header">
+          <div class="player-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"></path>
+              <path d="M19 10v2a7 7 0 01-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </div>
+          <div class="player-info">
+            <h1 class="player-title">[Title]</h1>
+            <div class="player-meta">
+              <span class="meta-item">
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                [textField2]
+              </span>
+              <span class="meta-item">
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                [textField3]
+              </span>
+              <span class="meta-item">
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                [PublishedDate]
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Audio player -->
+        <div class="audio-player">
+          <audio id="podcastAudio" controls preload="metadata">
+            <source src="[textField1]" type="audio/mpeg">
+            Váš prohlížeč nepodporuje přehrávání audio souborů.
+          </audio>
+          
+          <div class="player-controls">
+            <button class="control-btn" id="playPauseBtn" aria-label="Play/Pause">
+              <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <svg class="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+            
+            <div class="progress-container">
+              <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="duration">0:00</span>
+              </div>
+            </div>
+            
+            <button class="control-btn" id="muteBtn" aria-label="Mute/Unmute">
+              <svg class="volume-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"></path>
+              </svg>
+              <svg class="mute-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            </button>
+            
+            <div class="volume-control">
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" aria-label="Volume">
+            </div>
+            
+            <button class="control-btn" id="downloadBtn" aria-label="Download">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Player actions -->
+        <div class="player-actions">
+          <button class="action-btn" id="speedBtn" data-speed="1">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            1×
+          </button>
+          
+          <button class="action-btn" id="skipBackBtn">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5"></line>
+            </svg>
+            -15s
+          </button>
+          
+          <button class="action-btn" id="skipForwardBtn">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+            +15s
+          </button>
+          
+          <button class="action-btn" id="shareBtn">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Sdílet
+          </button>
+        </div>
+        
+        <!-- Transcript section (if available) -->
+        <div class="transcript-section" id="transcriptSection" style="display: none;">
+          <h4 class="transcript-title">
+            <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Přepis podcastu
+          </h4>
+          <div class="transcript-content" id="transcriptContent">
+            [textField4]
+          </div>
+          <button class="transcript-toggle" id="transcriptToggle">
+            <span>Zobrazit přepis</span>
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Article Content -->
+    <div class="article-content-section">
+      <div class="article-content">
+        [Content]
+      </div>
+    </div>
+    
+    <!-- Subscribe Section -->
+    <div class="podcast-subscribe">
+      <h3 class="subscribe-title">Odebírejte náš podcast</h3>
+      <p class="subscribe-text">
+        Dostávejte upozornění na nové epizody podcastu o OpenClaw, AI agentech a automatizaci.
+      </p>
+      <div class="subscribe-buttons">
+        <a href="#" class="subscribe-btn" onclick="alert('RSS feed připravujeme')">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 11a9 9 0 0 1 9 9"></path>
+            <path d="M4 4a16 16 0 0 1 16 16"></path>
+            <circle cx="5" cy="19" r="1"></circle>
+          </svg>
+          RSS Feed
+        </a>
+        <a href="#" class="subscribe-btn" onclick="alert('Apple Podcasts připravujeme')">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"></path>
+            <path d="M10 2c1 .5 2 2 2 5"></path>
+          </svg>
+          Apple Podcasts
+        </a>
+        <a href="#" class="subscribe-btn" onclick="alert('Spotify připravujeme')">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 11.973c2.5-1.473 5.5-.973 7.5.527"></path>
+            <path d="M9 15c1.5-1 4-1 5 .5"></path>
+            <path d="M7 9c2-1 6-2 10 .5"></path>
+          </svg>
+          Spotify
+        </a>
+      </div>
+    </div>
+    
+    <!-- Related Episodes -->
+    <div class="podcast-episodes">
+      <h3 class="episodes-title">Další epizody</h3>
+      <div class="episodes-grid">
+        <!-- Dynamický výpis souvisejících podcastů -->
+        <posts category="podcasty" take="3" exclude="[Id]" order="date">
+          <div class="episode-card">
+            <div class="episode-header">
+              <span class="episode-number">Epizoda #[PostNumber]</span>
+              <span class="episode-date">[PublishedDate]</span>
+            </div>
+            <h4 class="episode-title">[Title]</h4>
+            <p class="episode-excerpt">[Perex]</p>
+            <div class="episode-meta">
+              <span>[textField2]</span>
+              <span>•</span>
+              <span>[textField3]</span>
+            </div>
+            <a href="[Url]" class="episode-link">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Poslechnout
+            </a>
+          </div>
+        </posts>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Same JavaScript as in mp3_player_component.html
+document.addEventListener('DOMContentLoaded', function() {
+  const audio = document.getElementById('podcastAudio');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+  const currentTimeEl = document.getElementById('currentTime');
+  const durationEl = document.getElementById('duration');
+  const muteBtn = document.getElementById('muteBtn');
+  const volumeSlider = document.getElementById('volumeSlider');
+  const speedBtn = document.getElementById('speedBtn');
+  const skipBackBtn = document.getElementById('skipBackBtn');
+  const skipForwardBtn = document.getElementById('skipForwardBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const transcriptToggle = document.getElementById('transcriptToggle');
+  const transcriptSection = document.getElementById('transcriptSection');
+  const transcriptContent = document.getElementById('transcriptContent');
+  
+  // Check if transcript exists
+  if (transcriptContent && transcriptContent.textContent.trim()) {
+    transcriptSection.style.display = 'block';
+  }
+  

@@ -1,0 +1,11 @@
+{
+  "websiteId": "0bb29aa8-00e5-4d54-ae29-83f9c9343032",
+  "sectionId": "e0aad26f-b1d7-4f49-8ac5-6a2f34c8d9e4",
+  "name": "ROUNDHEAT Technology",
+  "htmlContent": "$(cat projects/bondsky/roundheat_simple.html | sed 's/"/\\\\"/g' | tr -d '\n')",
+  "sortOrder": 6,
+  "title": "ROUNDHEAT Technology",
+  "showInMenu": false,
+  "showOnPage": true,
+  "slug": "roundheat-technology"
+}

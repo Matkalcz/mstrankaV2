@@ -1,0 +1,138 @@
+/* ===== BLOG CARDS FIX ===== */
+/* Podpora pro starší třídy .blog-card a .card-* */
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.blog-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-header .category {
+  background: #f97316;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.card-header .date {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.card-excerpt {
+  color: #475569;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.card-link {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+.card-link:hover {
+  color: #7c3aed;
+}
+
+/* Zajištění kompatibility - obě sady tříd */
+.post-card, .blog-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.post-card:hover, .blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.post-header, .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.post-category, .card-header .category {
+  background: #f97316;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.post-date, .card-header .date {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.post-title, .card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.post-excerpt, .card-excerpt {
+  color: #475569;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.post-link, .card-link {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.post-link:hover, .card-link:hover {
+  color: #7c3aed;
+}
+
+/* Grid kompatibilita */
+.posts-grid, .blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}

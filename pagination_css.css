@@ -1,0 +1,117 @@
+/* CSS pro listování (pagination) */
+
+/* Styly pro pagination generovanou smart tagem <posts> */
+.pagination-container {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+/* Čísla stránek */
+.pagination a {
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.pagination a:hover {
+  background: [WebPrimaryColor];
+  color: white;
+  border-color: [WebPrimaryColor];
+}
+
+/* Aktuální stránka */
+.pagination .current {
+  background: [WebPrimaryColor];
+  color: white;
+  border-color: [WebPrimaryColor];
+  font-weight: 600;
+}
+
+/* Navigační šipky */
+.pagination .prev,
+.pagination .next {
+  background: white;
+  color: [WebPrimaryColor];
+  border: 1px solid [WebPrimaryColor];
+}
+
+.pagination .prev:hover,
+.pagination .next:hover {
+  background: [WebPrimaryColor];
+  color: white;
+}
+
+/* Disabled stav */
+.pagination .disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+.pagination .disabled:hover {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+/* Ellipsis */
+.pagination .ellipsis {
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  min-width: auto;
+  padding: 0 0.25rem;
+}
+
+/* Informace o pagination */
+.pagination-info {
+  text-align: center;
+  color: #64748b;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+/* Responzivita */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 0.25rem;
+  }
+  
+  .pagination a,
+  .pagination span {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .pagination .prev,
+  .pagination .next {
+    padding: 0 1rem;
+  }
+}
