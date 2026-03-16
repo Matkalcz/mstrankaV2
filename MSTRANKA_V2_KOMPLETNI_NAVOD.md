@@ -153,41 +153,39 @@ git push origin main
 </ul>
 ```
 
-### **3.2 Escapeování HTML (DŮLEŽITÉ!)**
-**Speciální znaky musí být escapované:** `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;`
+### **3.2 Formátování HTML pro MCP (DŮLEŽITÉ!)**
+**⚠️ POZOR: HTML se NEMÁ escapovat pro `htmlContent`!**
 
-**Metoda 1: Použij jq (nejjednodušší)**
+**Správně (čisté HTML):**
 ```bash
-HTML_CONTENT=$(cat muj_clanek.html | jq -Rs . | sed 's/^"//;s/"$//')
+# Čisté HTML, žádné escapování!
+htmlContent="<p>Testovací obsah</p>"
 ```
 
-**Metoda 2: Ruční escape**
+**Špatně (escapované HTML):**
 ```bash
-sed -e 's/&/\&amp;/g' \
-    -e 's/</\&lt;/g' \
-    -e 's/>/\&gt;/g' \
-    -e 's/"/\&quot;/g' \
-    -e "s/'/\&#39;/g" \
-    muj_clanek.html > escaped.html
+# TOTO NEFUNGUJE! Rozbíjí HTML
+htmlContent="&lt;p&gt;Testovací obsah&lt;/p&gt;"
 ```
 
-**Metoda 3: Automatizační skript**
+**Co se ve skutečnosti potřebuje:**
+1. **HTML zůstává čisté** - `<p>Text</p>`
+2. **JSON serializaci řeší nástroje** - `mcporter` nebo framework
+3. **Pokud voláš přes shell**, použij uvozovky: `htmlContent="<p>Text</p>"`
+
+**Příklad správného použití:**
 ```bash
-#!/bin/bash
-# escape_html.sh
-
-INPUT_FILE="$1"
-OUTPUT_FILE="${INPUT_FILE%.html}_escaped.html"
-
-sed -e 's/&/\&amp;/g' \
-    -e 's/</\&lt;/g' \
-    -e 's/>/\&gt;/g' \
-    -e 's/"/\&quot;/g' \
-    -e "s/'/\&#39;/g" \
-    "$INPUT_FILE" > "$OUTPUT_FILE"
-
-echo "Escaped: $INPUT_FILE → $OUTPUT_FILE"
+# Správně: čisté HTML v uvozovkách
+mcporter call mstranka.edit_section \
+  websiteId="..." \
+  sectionId="..." \
+  htmlContent="<h2>Nadpis</h2><p>Obsah článku s <strong>tučným</strong> textem.</p>"
 ```
+
+**Proč původní sekce byla špatně:**
+- Escapování HTML entit (`<` → `&lt;`) je pro zobrazení HTML jako textu na webové stránce
+- Pro `htmlContent` v API potřebujeme surové HTML
+- JSON speciální znaky (`"`, `\`, `\n`) řeší JSON serializer automaticky
 
 ### **3.3 Vytvoření nového článku**
 ```bash
