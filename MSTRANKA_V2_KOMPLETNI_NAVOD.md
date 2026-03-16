@@ -1,4 +1,4 @@
-# KOMPLETNÍ NÁVOD: MCP pro mStranka V2
+# KOMPLETNÍ NÁVOD: mStranka V2
 
 **Pro:** Všechny agenty pracující s mStranka V2  
 **Datum:** 2026-03-16  
