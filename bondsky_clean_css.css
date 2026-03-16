@@ -1,0 +1,101 @@
+/* Bondsky - Kompletní CSS s proměnnými */
+
+/* CSS Variables */
+:root {
+  --primary-color: #dc2626;
+  --primary-hover: #b91c1c;
+  --secondary-color: #f8fafc;
+  --secondary-hover: #e2e8f0;
+  --bonds-red: #b91c1c;
+  --bonds-gold: #f59e0b;
+  --bonds-dark: #1e293b;
+  --foreground: #0f172a;
+  --foreground-muted: #475569;
+  --foreground-80: rgba(15, 23, 42, 0.8);
+  --foreground-60: rgba(15, 23, 42, 0.6);
+  --foreground-35: rgba(15, 23, 42, 0.35);
+  --white-85: rgba(255, 255, 255, 0.85);
+  --white-70: rgba(255, 255, 255, 0.7);
+  --white-60: rgba(255, 255, 255, 0.6);
+  --white-50: rgba(255, 255, 255, 0.5);
+  --white-30: rgba(255, 255, 255, 0.3);
+  --white-10: rgba(255, 255, 255, 0.1);
+  --white-5: rgba(255, 255, 255, 0.05);
+}
+
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;500;600;700;800&display=swap');
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  color: var(--foreground);
+  background-color: #fff;
+  line-height: 1.5;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem;
+  }
+}
+
+/* Font utilities */
+.font-bebas {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.font-nunito {
+  font-family: 'Nunito', sans-serif;
+}
+
+.font-600 { font-weight: 600; }
+.font-700 { font-weight: 700; }
+
+/* Text sizes */
+.text-\[14px\] { font-size: 14px; }
+.text-\[16px\] { font-size: 16px; }
+.text-\[18px\] { font-size: 18px; }
+.text-\[20px\] { font-size: 20px; }
+.text-\[23px\] { font-size: 23px; }
+.text-\[24px\] { font-size: 24px; }
+.text-\[28px\] { font-size: 28px; }
+.text-\[35px\] { font-size: 35px; }
+.text-\[48px\] { font-size: 48px; }
+.text-\[55px\] { font-size: 55px; }
+.text-\[64px\] { font-size: 64px; }
+.text-\[69px\] { font-size: 69px; }
+.text-\[72px\] { font-size: 72px; line-height: 1; }
+.text-\[80px\] { font-size: 80px; line-height: 1; }
+
+/* Responsive text sizes */
+@media (min-width: 640px) {
+  .sm\\:text-\[64px\] { font-size: 64px; }
+  .sm\\:text-\[69px\] { font-size: 69px; }
+  .sm\\:text-\[96px\] { font-size: 96px; line-height: 1; }
+}
+
+@media (min-width: 1024px) {
+... [CSS truncated for preview]

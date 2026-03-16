@@ -1,0 +1,14 @@
+/* Simplest CSS */
+body { font-family: sans-serif; margin: 0; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 1rem; }
+.text-center { text-align: center; }
+.bg-white { background: white; }
+.bg-dark { background: #1e293b; color: white; }
+.text-48px { font-size: 48px; }
+.text-20px { font-size: 20px; }
+.grid { display: grid; }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.gap-4 { gap: 1rem; }
+.py-24 { padding: 6rem 0; }
+.mb-16 { margin-bottom: 4rem; }
+.rounded-2xl { border-radius: 1rem; }

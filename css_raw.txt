@@ -1,0 +1,60 @@
+/* Bondsky CSS - raw version */
+:root {
+  --primary-color: #dc2626;
+  --bonds-dark: #1e293b;
+  --foreground: #0f172a;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.font-bebas {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.font-nunito {
+  font-family: 'Nunito', sans-serif;
+}
+
+.text-\[48px\] { font-size: 48px; }
+.text-\[20px\] { font-size: 20px; }
+.text-\[14px\] { font-size: 14px; }
+
+.text-white { color: white; }
+.text-primary { color: var(--primary-color); }
+
+.bg-white { background-color: white; }
+.bg-bonds-dark { background-color: var(--bonds-dark); }
+.bg-primary { background-color: var(--primary-color); }
+
+.grid { display: grid; }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.gap-4 { gap: 1rem; }
+
+.py-24 { padding-top: 6rem; padding-bottom: 6rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.mb-16 { margin-bottom: 4rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+
+.rounded-2xl { border-radius: 1rem; }
+.rounded-full { border-radius: 9999px; }
+
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+
+.text-center { text-align: center; }
+.max-w-2xl { max-width: 42rem; }

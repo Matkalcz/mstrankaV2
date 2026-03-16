@@ -1,0 +1,4 @@
+CSS připraveno pro odeslání
+Délka: 1407 znaků
+Prvních 100 znaků:
+/* Bondsky CSS - raw version */\n:root {\n  --primary-color: #dc2626;\n  --bonds-dark: #1e293b;\n  -
