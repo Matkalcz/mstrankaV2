@@ -125,6 +125,88 @@ git push origin main
 
 ---
 
+## 📚 VYTVÁŘENÍ OBSAHU POMOCÍ KATEGORIÍ
+
+**Strukturovaný přístup k tvorbě webového obsahu:**
+
+### **1. WORKFLOW PRO NOVOU KATEGORII**
+**Vytváření obsahu probíhá vždy v těchto krocích:**
+
+```
+1. Založit kategorii
+   ↓
+2. Vytvořit univerzální articlepage pro zobrazování článku
+   ↓  
+3. Založit univerzální listpage pro výpis článků
+   ↓
+4. Přiřadit kategorii articlepage i listpage
+```
+
+### **2. PRAVIDLA PRO KATEGORIE**
+
+**Každá kategorie musí mít:**
+- ✅ **Articlepage** - univerzální šablona pro zobrazení jednotlivého článku
+- ✅ **Listpage** - univerzální šablona pro výpis všech článků v kategorii
+- ✅ **Přiřazení** - kategorie musí mít obě stránky explicitně přiřazené
+- ✅ **Odkazy** - všechny odkazy v menu vedou na generované adresy kategorií
+
+### **3. UNIVERZÁLNÍ VS UNIKÁTNÍ STRÁNKY**
+
+**Univerzální stránky (používat vždy):**
+- **Articlepage** - pro zobrazení jakéhokoli článku v kategorii
+- **Listpage** - pro výpis všech článků v kategorii
+- **Výhoda:** Jedna šablona pro všechny články/kategorie
+
+**Unikátní stránky (používat výjimečně):**
+- Pouze pro stránky které **nemohou mít kategorii**
+- Např.: Kontakt, O nás, Domovská stránka
+- **Pravidlo:** Pokud může mít kategorii → použít kategorii
+
+### **4. PŘÍKLAD: BLOG KATEGORIE**
+
+**Kategorie "Technologie":**
+```
+1. Založení kategorie:
+   - Název: "Technologie"
+   - Slug: "technologie"
+
+2. Articlepage:
+   - Název: "Articlepage - Technologie"
+   - Šablona: univerzální_articlepage.html
+   - Přiřazeno kategorii: Technologie
+
+3. Listpage:
+   - Název: "Listpage - Technologie"  
+   - Šablona: univerzální_listpage.html
+   - Přiřazeno kategorii: Technologie
+
+4. Odkazy:
+   - Menu: /kategorie/technologie → listpage
+   - Článek: /clanek/nazev-clanku → articlepage
+```
+
+### **5. KONTROLNÍ SEZNAM PŘED VYTVOŘENÍM OBSAHU**
+
+- [ ] Určil jsem správnou kategorii pro obsah
+- [ ] Kategorie má přiřazenou articlepage i listpage
+- [ ] Používám univerzální šablony (ne vytvářím nové)
+- [ ] Odkazy vedou na generované adresy kategorií
+- [ ] Unikátní stránku vytvářím pouze pokud NEMŮŽE mít kategorii
+
+### **6. CHYBY KTERÝM SE VYHNOUT**
+
+❌ **Vytvářet unikátní stránku** pro každý článek  
+❌ **Používat přímé odkazy** místo kategorií  
+❌ **Zapomenout přiřadit** articlepage/listpage ke kategorii  
+❌ **Vytvářet nové šablony** místo použití univerzálních  
+
+✅ **Vždy používat kategorie** pokud je to možné  
+✅ **Používat univerzální šablony**  
+✅ **Odkazovat na generované adresy** kategorií  
+✅ **Přiřazovat obě stránky** ke každé kategorii  
+
+---
+
 ## 🔌 PŘIPOJENÍ MCP
 
 ### **1.1 Kontrola připojení**
