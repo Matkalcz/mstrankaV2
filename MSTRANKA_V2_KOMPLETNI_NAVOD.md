@@ -473,10 +473,11 @@ mcporter call mstranka.add_section \
 ### **4.3 Úprava existující sekce (edit_section) - SPRÁVNÝ FORMÁT**
 **✅ SPRÁVNĚ (funguje!):**
 ```bash
+# PŘED editací: VŽDY si získej správné sectionId pro svůj web!
 mcporter call mstranka.edit_section \
-  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
-  sectionId="70254035-7b13-461e-97a1-cc81e4a0130c" \
-  name="hero" \
+  websiteId="TVOJE_WEBSITE_ID" \
+  sectionId="SPRÁVNÉ_SECTION_ID_PRO_TVŮJ_WEB" \
+  name="název-sekce" \
   htmlContent="<p>Testovací obsah</p>" \
   title="Testovací nadpis" \
   showOnPage=true
@@ -485,19 +486,53 @@ mcporter call mstranka.edit_section \
 **❌ ŠPATNĚ (nefunguje!):**
 ```bash
 # TOTO NEFUNGUJE!
-mcporter bondsky edit_section --id 70254035-7b13-461e-97a1-cc81e4a0130c --data '{"title": "Test", "content": "Test"}'
+# 1. Používáš špatný příkaz (bondsky místo mstranka)
+# 2. Používáš špatné ID (ID z jiného webu)
+mcporter bondsky edit_section --id NESPRÁVNÉ_ID --data '{"title": "Test", "content": "Test"}'
 ```
 
-### **4.4 Všechny sekce Bondsky s ID:**
+### **4.4 ZÍSKÁNÍ SEKCÍ KONKRÉTNÍHO WEBU**
+
+**⚠️ DŮLEŽITÉ: Každý web má jiná ID sekcí! NEPOUŽÍVEJ ID z tohoto návodu!**
+
+#### **4.4.1 Jak získat všechny sekce webu:**
+```bash
+# 1. Získej kompletní kontext webu
+mcporter call mstranka.get_context \
+  websiteId="TVOJE_WEBSITE_ID" \
+  --output json > website_context.json
+
+# 2. Extrahuj sekce s jejich ID
+cat website_context.json | jq '.pages[].sections[] | {name: .name, id: .id}'
+
+# 3. Nebo použij grep pro konkrétní sekci
+cat website_context.json | grep -A5 -B5 "Hero"  # nebo jiný název sekce
 ```
-Hero: 70254035-7b13-461e-97a1-cc81e4a0130c
-ROUNDHEAT: e0aad26f-b1d7-4f49-8ac5-6a2f34c8d9e4
-Why Bonds: 946ea13d-5e9b-4132-8e5d-ded98432ef20
-Blends: 3f5d729e-7420-4a8e-8d8e-87ff434e2c6e
-News: 2bd91bb2-437a-46c9-a53c-7918d6c16228
-Tips & Guides: 9f9bfcdd-4c77-47be-88ce-a6ab670b9d0f
-CTA: 413d0a1f-51ef-4848-be54-3d8195d28642
+
+#### **4.4.2 Příklad výstupu (UNIVERZÁLNÍ FORMÁT):**
 ```
+{
+  "name": "Hero",
+  "id": "UNIKÁTNÍ_ID_PRO_TVŮJ_WEB"
+}
+{
+  "name": "News", 
+  "id": "JINÉ_UNIKÁTNÍ_ID"
+}
+```
+
+#### **4.4.3 Proč NEPOUŽÍVAT konkrétní ID z příkladů:**
+- ❌ **Každý web má jiná ID** sekcí
+- ❌ **ID z Bondsky** nefungují na jiných webech
+- ❌ **Agent se zmate** když použije špatné ID
+- ✅ **Vždy si získej aktuální ID** pro svůj web
+- ✅ **Používej `get_context`** před každou editací
+
+#### **4.4.4 Kontrolní seznam před editací sekce:**
+- [ ] Získal jsem aktuální `websiteId` svého webu
+- [ ] Získal jsem všechny sekce pomocí `get_context`
+- [ ] Našel jsem správné `sectionId` pro sekci kterou chci editovat
+- [ ] Ověřil jsem že `sectionId` patří k mému webu
 
 ### **4.5 FOOTER A HEADER - KAM NAHRÁVAT OBSAH**
 
