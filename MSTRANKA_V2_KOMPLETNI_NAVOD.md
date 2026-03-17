@@ -53,6 +53,55 @@ git push origin main
 
 **Repozitář:** https://github.com/Matkalcz/mstrankaV2
 
+### **4. TECHNOLOGIE PRO NOVÉ WEBY**
+**Nové weby stavěné od začátku používají Tailwind CSS:**
+```html
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Nový web</title>
+</head>
+<body class="bg-gray-50">
+    <!-- Obsah s Tailwind třídami -->
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800">Nadpis</h1>
+        <p class="text-gray-600 mt-4">Text s Tailwind třídami.</p>
+    </div>
+</body>
+</html>
+```
+
+**Pravidla:**
+- **Vždy** vlož Tailwind CDN odkaz do hlavičky
+- **Používej** Tailwind utility třídy (např. `text-gray-800`, `p-4`, `flex`)
+- **Custom třídy** jen výjimečně, pokud jsou nezbytné
+- **Responzivní design** pomocí Tailwind breakpointů (`sm:`, `md:`, `lg:`)
+
+### **5. WORKFLOW PUBLIKACE**
+**Změny na webu jdou vždy jen do Preview!**
+
+**Pravidla publikace:**
+1. **Všechny změny** se nejdříve nahrávají do **Preview** režimu
+2. **Agent si musí vyžádat souhlas** s publikací na ostrý web
+3. **Výjimka:** Publikace zcela nového webu (neexistujícího předtím)
+4. **Před každým nahráním preview** si agent otevře tento návod a zkontroluje postup
+
+**Workflow:**
+```
+1. Agent vytvoří změny → 2. Nahrání do Preview → 3. Žádost o souhlas → 4. Publikace
+```
+
+**Kontrolní seznam před nahráním:**
+- [ ] Otevřel jsem tento návod a zkontroloval postup
+- [ ] HTML je čisté (bez doctype/html/head/body pro obsah)
+- [ ] Používám Tailwind CSS (pro nové weby)
+- [ ] Nahrávám pouze do Preview
+- [ ] Budu žádat o souhlas pro publikaci
+
 ---
 
 ## 🔌 PŘIPOJENÍ MCP
