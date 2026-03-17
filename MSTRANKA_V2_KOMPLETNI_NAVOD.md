@@ -102,6 +102,27 @@ git push origin main
 - [ ] Nahrávám pouze do Preview
 - [ ] Budu žádat o souhlas pro publikaci
 
+### **6. ZÁSADNÍ PRAVIDLO MCP**
+**Publikace přes MCP musí proběhnout VŽDY jen podle tohoto návodu!**
+
+**ZAKÁZÁNO:**
+- ❌ Zkoušet vlastní řešení nebo postupy
+- ❌ Ignorovat tento návod
+- ❌ Vymýšlet si alternativní metody
+- ❌ Přeskakovat kontrolní seznam
+
+**POVINNÉ:**
+- ✅ Před každou publikací otevřít tento návod
+- ✅ Postupovat přesně podle kroků
+- ✅ Dodržet workflow publikace (Preview → souhlas → publikace)
+- ✅ Používat pouze ověřené příkazy z návodu
+
+**Důsledky porušení:**
+- Chyby v publikaci
+- Rozbitý obsah na webu
+- Ztráta času na opravy
+- Nutnost znovu publikovat
+
 ---
 
 ## 🔌 PŘIPOJENÍ MCP
