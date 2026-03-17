@@ -389,7 +389,62 @@ mcporter call mstranka.get_context \
   --output json > context.json
 ```
 
-### **4.2 Přidání nové sekce (add_section)**
+### **4.2 ZALOŽENÍ NOVÉ STRÁNKY (create_page)**
+
+**Kdy založit novou stránku:**
+- **Unikátní stránky:** Kontakt, O nás, Domovská stránka
+- **Univerzální stránky:** Articlepage, Listpage pro kategorie
+- **Speciální stránky:** Landing pages, promo stránky
+
+#### **4.2.1 Založení univerzální stránky (articlepage/listpage)**
+```bash
+# Založení nové stránky
+mcporter call mstranka.create_page \
+  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
+  name="articlepage-technologie" \
+  title="Articlepage - Technologie" \
+  slug="articlepage-technologie" \
+  isPublished=true \
+  template="articlepage"  # nebo "listpage" pro výpis článků
+```
+
+#### **4.2.2 Založení unikátní stránky**
+```bash
+# Založení kontaktní stránky
+mcporter call mstranka.create_page \
+  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
+  name="kontakt" \
+  title="Kontakt" \
+  slug="kontakt" \
+  isPublished=true \
+  template="default"  # nebo specifický template
+```
+
+#### **4.2.3 Získání ID nové stránky**
+```bash
+# Po vytvoření stránky získej její ID
+mcporter call mstranka.get_context \
+  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
+  --output json | jq '.pages[] | select(.name=="articlepage-technologie") | .id'
+```
+
+#### **4.2.4 Přiřazení stránky ke kategorii**
+```bash
+# Pokud vytváříš articlepage/listpage pro kategorii, přiřaď ji
+mcporter call mstranka.assign_page_to_category \
+  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
+  pageId="NOVE_STRANKY_ID" \
+  categoryId="KATEGORIE_ID"
+```
+
+#### **4.2.5 Kontrolní seznam před založením stránky**
+- [ ] Určil jsem typ stránky (unikátní/univerzální)
+- [ ] Vybral jsem správný template (articlepage/listpage/default)
+- [ ] Zvolil jsem smysluplný slug (URL adresa)
+- [ ] Vím ke které kategorii stránku přiřadit (pokud je univerzální)
+- [ ] Získám ID stránky pro další práci
+
+### **4.3 Přidání nové sekce (add_section)**
 ```bash
 mcporter call mstranka.add_section \
   websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
