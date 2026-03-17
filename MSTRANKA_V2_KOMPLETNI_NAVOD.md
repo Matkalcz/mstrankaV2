@@ -650,7 +650,30 @@ mcporter call mstranka.edit_section \
   showOnPage=true
 ```
 
-### **5.2 Diagnostika edit_section problému (pro Kristiana)**
+### **5.2 KDYŽ NĚCO CHYBÍ V NÁVODU NEBO MCP SERVER NEPOMÁHÁ**
+
+**Řešení: Otevři si dokumentaci mStranka V2**
+```bash
+# 1. Dokumentace obsahuje kompletní API
+#    https://mcp-help.v2.mstranka.cz/
+
+# 2. Hledej v GitHub historii
+cd /home/openclaw/.openclaw/workspace-mstrankaV2
+git log --oneline --grep="tvůj_problém" -i
+
+# 3. Kontaktuj main agenta (Damiaan)
+#    - Popiš problém
+#    - Přidej chybovou zprávu
+#    - Řekni co jsi už zkoušel
+```
+
+**NEVYMÝŠLEJ si řešení:**
+- ❌ Nezkoušej vlastní příkazy
+- ❌ Neměň formát bez ověření
+- ✅ Dodržuj tento návod
+- ✅ Používej dokumentaci: https://mcp-help.v2.mstranka.cz/
+
+### **5.3 Diagnostika edit_section problému (pro Kristiana)**
 **Pokud edit_section nefunguje:**
 1. **Získej kontext:** `mcporter call mstranka.get_context websiteId="..." --output json`
 2. **Najdi správné sectionId:** `cat context.json | jq -r '.pages[].sections[] | "\(.name): \(.id)"'`
@@ -726,6 +749,32 @@ mcporter call mstranka.edit_section \
 - **Main agent:** Damiaan (koordinuje všechny agenty)
 - **GitHub:** https://github.com/Matkalcz/mstrankaV2
 - **MCP server:** https://mcp.v2.mstranka.cz/
+- **Dokumentace:** https://mcp-help.v2.mstranka.cz/
+
+### **⚠️ DŮLEŽITÉ: KDYŽ MCP SERVER NEPOMÁHÁ**
+**Pokud něco chybí v návodu nebo MCP server nefunguje:**
+
+1. **Zkus si otevřít dokumentaci:**
+   - https://mcp-help.v2.mstranka.cz/
+   - Kompletní API dokumentace
+   - Příklady a návody
+
+2. **Hledej v GitHub historii:**
+   ```bash
+   cd /home/openclaw/.openclaw/workspace-mstrankaV2
+   git log --oneline --grep="tvůj_problém" -i
+   ```
+
+3. **Kontaktuj main agenta (Damiaan):**
+   - Popiš problém
+   - Přidej chybovou zprávu
+   - Řekni co jsi už zkoušel
+
+4. **NEVYMÝŠLEJ si řešení:**
+   - ❌ Nezkoušej vlastní příkazy
+   - ❌ Neměň formát bez ověření
+   - ✅ Dodržuj tento návod
+   - ✅ Používej dokumentaci
 
 ---
 
