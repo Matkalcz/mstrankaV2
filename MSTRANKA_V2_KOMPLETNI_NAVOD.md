@@ -398,26 +398,41 @@ mcporter call mstranka.get_context \
 
 #### **4.2.1 Založení univerzální stránky (articlepage/listpage)**
 ```bash
-# Založení nové stránky
+# Založení nové stránky - SPRÁVNÉ PARAMETRY
 mcporter call mstranka.create_page \
   websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
   name="articlepage-technologie" \
-  title="Articlepage - Technologie" \
   slug="articlepage-technologie" \
-  isPublished=true \
-  template="articlepage"  # nebo "listpage" pro výpis článků
+  title="Articlepage - Technologie" \
+  showInMenu=false \
+  description="Univerzální articlepage pro kategorii Technologie"
 ```
+
+**⚠️ DŮLEŽITÉ:** `create_page` **FUNGUJE** i když není vždy vidět v seznamu nástrojů!  
+**Parametry podle API:**
+- `websiteId` (povinné) - ID webu
+- `name` (povinné) - interní název stránky
+- `slug` (povinné) - URL adresa
+- `title` (povinné) - zobrazovaný název
+- `sortOrder?` (volitelné) - pořadí v menu
+- `showInMenu?` (volitelné) - zobrazit v menu
+- `description?` (volitelné) - popis stránky
+- `language?` (volitelné) - jazyk
+
+**NEMÁ parametry:**
+- `template` - template se nastavuje jinak (přiřazením ke kategorii)
+- `isPublished` - publikace se řeší jinak
 
 #### **4.2.2 Založení unikátní stránky**
 ```bash
-# Založení kontaktní stránky
+# Založení kontaktní stránky - SPRÁVNÉ PARAMETRY
 mcporter call mstranka.create_page \
   websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
   name="kontakt" \
-  title="Kontakt" \
   slug="kontakt" \
-  isPublished=true \
-  template="default"  # nebo specifický template
+  title="Kontakt" \
+  showInMenu=true \
+  description="Kontaktní stránka"
 ```
 
 #### **4.2.3 Získání ID nové stránky**
@@ -560,6 +575,20 @@ openclaw config get mcp.servers.mstranka
 ```bash
 # Řešení: Získej správné ID
 mcporter call mstranka.list_websites --output json
+```
+
+**Chyba: "create_page not found" nebo "Unknown tool"**
+```bash
+# Řešení: `create_page` FUNGUJE i když není vždy vidět v seznamu!
+# Použij ho přímo:
+mcporter call mstranka.create_page \
+  websiteId="ID_WEBU" \
+  name="název-stránky" \
+  slug="slug-stránky" \
+  title="Název stránky"
+
+# Nebo zkontroluj všechny dostupné nástroje:
+mcporter list mstranka | grep -A5 "function create_page"
 ```
 
 **Chyba: "Invalid HTML content" nebo JSON parse error**
