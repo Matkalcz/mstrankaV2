@@ -189,6 +189,7 @@ git push origin main
 
 - [ ] Určil jsem správnou kategorii pro obsah
 - [ ] Kategorie má přiřazenou articlepage i listpage
+- [ ] **Listpage obsahuje smart tag `<posts>`** pro automatický výpis článků
 - [ ] Používám univerzální šablony (ne vytvářím nové)
 - [ ] Odkazy vedou na generované adresy kategorií
 - [ ] Unikátní stránku vytvářím pouze pokud NEMŮŽE mít kategorii
@@ -199,11 +200,13 @@ git push origin main
 ❌ **Používat přímé odkazy** místo kategorií  
 ❌ **Zapomenout přiřadit** articlepage/listpage ke kategorii  
 ❌ **Vytvářet nové šablony** místo použití univerzálních  
+❌ **Zapomenout na smart tag `<posts>`** v Listpage  
 
 ✅ **Vždy používat kategorie** pokud je to možné  
 ✅ **Používat univerzální šablony**  
 ✅ **Odkazovat na generované adresy** kategorií  
 ✅ **Přiřazovat obě stránky** ke každé kategorii  
+✅ **Přidat smart tag `<posts>`** do každé Listpage  
 
 ---
 
@@ -650,18 +653,90 @@ mcporter call mstranka.edit_section \
   showOnPage=true
 ```
 
-### **5.2 KDYŽ NĚCO CHYBÍ V NÁVODU NEBO MCP SERVER NEPOMÁHÁ**
+### **5.2 SMART TAGY - KLÍČOVÉ ŘEŠENÍ PRO LISTPAGE**
 
-**Řešení: Otevři si dokumentaci mStranka V2**
+**⚠️ DŮLEŽITÉ: Toto je klíčové řešení které jsem našel v dokumentaci!**
+
+#### **Smart tag `<posts>` - automatický výpis článků v kategorii**
+```html
+<posts category="novinky" take="5" order="date">
+ <h3>[Title]</h3>
+ <p>[Perex]</p>
+ <a href="[Url]">Číst dále</a>
+</posts>
+```
+
+#### **Atributy tagu `<posts>`:**
+- `category` **(povinný)** - slug kategorie (např. "novinky", "technologie")
+- `take` - počet článků k zobrazení (např. 5, 10)
+- `skip` - kolik článků přeskočit
+- `order` - řazení: `date` (nejnovější), `date asc` (nejstarší), `title` (abecedně)
+- `paging` - zapnout stránkování (true/false)
+- `pagesize` - počet článků na stránku
+
+#### **Proměnné uvnitř tagu:**
+- `[Title]` - název článku
+- `[Perex]` - perex/úvod článku
+- `[Content]` - celý obsah článku
+- `[PublishedDate]` - datum publikace
+- `[Url]` - URL článku
+- `[TitleImageUrl]` - URL titulního obrázku
+- `[Slug]` - slug článku
+- `[CategoryName]` - název kategorie
+- `[CategorySlug]` - slug kategorie
+- `[ExternalUrl]` - externí URL (pokud existuje)
+- `[HeaderVideoUrl]` - URL header videa
+- `[TextField1]` až `[TextField4]` - custom textová pole
+
+#### **Příklad: Listpage s výpisem článků**
+```html
+<div class="container mx-auto px-4">
+  <h1 class="text-3xl font-bold mb-8">Novinky</h1>
+  
+  <!-- SMART TAG: Automatický výpis 10 nejnovějších článků v kategorii "novinky" -->
+  <posts category="novinky" take="10" order="date">
+    <div class="mb-8 p-6 border rounded-lg shadow">
+      <h3 class="text-xl font-semibold mb-2">[Title]</h3>
+      <p class="text-gray-600 mb-4">[Perex]</p>
+      <div class="text-sm text-gray-500 mb-4">Publikováno: [PublishedDate]</div>
+      <a href="[Url]" class="text-blue-600 hover:text-blue-800 font-medium">
+        Číst celý článek →
+      </a>
+    </div>
+  </posts>
+</div>
+```
+
+#### **Kdy použít smart tag `<posts>`:**
+- ✅ **Listpage** - výpis všech článků v kategorii
+- ✅ **Homepage** - výpis nejnovějších článků
+- ✅ **Sidebar** - výpis populárních článků
+- ✅ **Různé sekce** - tematické výpisy článků
+
+#### **Jak přidat do Listpage:**
+1. **Otevři Listpage** v editoru
+2. **Přidej sekci** s HTML obsahem
+3. **Vlož smart tag** `<posts>` s parametry
+4. **Nastav styling** kolem proměnných
+5. **Ulož a publikuj**
+
+### **5.3 KDYŽ NĚCO CHYBÍ V NÁVODU NEBO MCP SERVER NEPOMÁHÁ**
+
+**Řešení: Otevři si dokumentaci mStranka V2 a PROJDI JI CELOU!**
 ```bash
-# 1. Dokumentace obsahuje kompletní API
+# 1. Dokumentace obsahuje KLÍČOVÉ ŘEŠENÍ jako smart tagy!
 #    https://mcp-help.v2.mstranka.cz/
 
-# 2. Hledej v GitHub historii
+# 2. Hledej v sekcích:
+#    - Smart tagy
+#    - API reference  
+#    - Příklady
+
+# 3. Hledej v GitHub historii
 cd /home/openclaw/.openclaw/workspace-mstrankaV2
 git log --oneline --grep="tvůj_problém" -i
 
-# 3. Kontaktuj main agenta (Damiaan)
+# 4. Kontaktuj main agenta (Damiaan)
 #    - Popiš problém
 #    - Přidej chybovou zprávu
 #    - Řekni co jsi už zkoušel
@@ -671,7 +746,8 @@ git log --oneline --grep="tvůj_problém" -i
 - ❌ Nezkoušej vlastní příkazy
 - ❌ Neměň formát bez ověření
 - ✅ Dodržuj tento návod
-- ✅ Používej dokumentaci: https://mcp-help.v2.mstranka.cz/
+- ✅ **PROJDI CELOU DOKUMENTACI:** https://mcp-help.v2.mstranka.cz/
+- ✅ **HLEDEJ KLÍČOVÁ ŘEŠENÍ** jako smart tagy
 
 ### **5.3 Diagnostika edit_section problému (pro Kristiana)**
 **Pokud edit_section nefunguje:**
