@@ -429,6 +429,66 @@ Tips & Guides: 9f9bfcdd-4c77-47be-88ce-a6ab670b9d0f
 CTA: 413d0a1f-51ef-4848-be54-3d8195d28642
 ```
 
+### **4.5 FOOTER A HEADER - KAM NAHRÁVAT OBSAH**
+
+**⚠️ DŮLEŽITÉ: Footer a header se NENAHRAVÁJÍ jako běžné sekce!**
+
+#### **Footer (patička) - footerContent:**
+**Kam nahrávat:** Do **globálního nastavení webu** (website settings), ne do sekcí!
+
+**Správný postup:**
+```bash
+# 1. Získej aktuální nastavení webu
+mcporter call mstranka.get_context \
+  websiteId="0bb29aa8-00e5-4d54-ae29-83f9c9343032" \
+  --output json > website_settings.json
+
+# 2. Uprav footerContent v nastavení
+# (Použij edit_website nebo update_website_settings podle API)
+```
+
+**Co je footerContent:**
+- Obsah patičky (footer) celého webu
+- Zobrazuje se na všech stránkách
+- Obsahuje: copyright, odkazy, kontakty, logo
+- **NENÍ to běžná sekce!**
+
+#### **Header (menu) - headerContent:**
+**Kam nahrávat:** Také do **globálního nastavení webu**!
+
+**Správný postup:**
+```bash
+# Nahrání headerContent (menu) do globálního nastavení
+# Použij stejný endpoint jako pro footer
+```
+
+**Co je headerContent:**
+- Hlavní menu/navigace webu
+- Zobrazuje se na všech stránkách
+- Obsahuje: logo, navigační odkazy, tlačítka
+- **NENÍ to běžná sekce!**
+
+#### **⚠️ KLÍČOVÉ ROZDÍLY:**
+
+| | **Běžné sekce** | **Footer/Header** |
+|---|---|---|
+| **Kam nahrávat** | `add_section` / `edit_section` | `edit_website_settings` |
+| **Scope** | Konkrétní stránka | Celý web |
+| **ID** | Má vlastní `sectionId` | Nemá sectionId |
+| **Přístup** | Přes `websiteId` + `pageId` | Přes `websiteId` |
+
+#### **KONTROLNÍ SEZNAM PŘED NAHRÁVÁNÍM:**
+- [ ] Rozlišuji mezi běžnou sekcí a footer/header
+- [ ] Footer/header nahrávám do globálního nastavení webu
+- [ ] Běžné sekce nahrávám přes `add_section`/`edit_section`
+- [ ] Vím které endpointy použít pro každý typ
+
+#### **CHYBY KTERÝM SE VYHNOUT:**
+❌ **Pokoušet se editovat footer** jako běžnou sekci  
+❌ **Hledat `sectionId`** pro footer/header (nemají ho)  
+❌ **Používat `edit_section`** pro footer/header  
+✅ **Používat správné endpointy** pro globální nastavení  
+
 ---
 
 ## 🔧 TROUBLESHOOTING
