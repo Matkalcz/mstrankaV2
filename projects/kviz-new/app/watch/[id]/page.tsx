@@ -193,16 +193,15 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   )
 
   if (slide.type === 'qr_page') {
-    const hasContent = slide.title || slide.content
     return (
       <div className="flex h-full">
-        <div className={`flex flex-col items-center justify-center gap-8 px-20 ${hasContent ? 'w-1/2' : 'w-full'}`}>
+        <div className="w-1/2 flex flex-col items-center justify-center gap-8 px-20">
           <div className="bg-white p-6 rounded-3xl shadow-2xl">
             <QRCodeSVG value={startUrl} size={300} level="M" />
           </div>
           <p className="font-mono text-lg text-center" style={{ color: textColor, opacity: 0.45 }}>{startUrl}</p>
         </div>
-        {hasContent && (
+        {(slide.title || slide.content) && (
           <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-20 text-center border-l border-white/[0.08]">
             {slide.title && <h2 className="text-5xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
             {slide.content && <p className="text-2xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}

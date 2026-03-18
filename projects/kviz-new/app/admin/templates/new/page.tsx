@@ -39,6 +39,7 @@ interface TemplateConfig {
   pages: PageConfig[]
   separator: { name: string } & BgConfig
   qrPage: { name: string } & BgConfig
+  roundStart: { name: string } & BgConfig
 }
 
 // ─── Výchozí hodnoty ───────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ function makeDefaultConfig(): TemplateConfig {
     pages: [{ id: "p1", name: "Uvítací stránka", ...DEFAULT_BG }],
     separator: { name: "Opakování odpovědí", ...DEFAULT_BG, bg1: "#0a0a1a" },
     qrPage: { name: "QR stránka", ...DEFAULT_BG, bg1: "#0d0f2a" },
+    roundStart: { name: "Kolo", ...DEFAULT_BG, bg1: "#1a0a3e" },
   }
 }
 
@@ -167,7 +169,7 @@ function bgStyle(bg: BgConfig): React.CSSProperties {
 
 // ─── Sekce šablony ─────────────────────────────────────────────────────────────
 
-type Section = { type: "global" } | { type: "qtype"; key: string } | { type: "page"; id: string } | { type: "separator" } | { type: "qrpage" }
+type Section = { type: "global" } | { type: "qtype"; key: string } | { type: "page"; id: string } | { type: "separator" } | { type: "qrpage" } | { type: "roundstart" }
 
 function SectionBlock({ title, color, preview, open, onToggle, children }: {
   title: string; color?: string; preview?: React.ReactNode
@@ -195,6 +197,7 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
     if (active.type === "page") return cfg.pages.find(p => p.id === active.id) ?? DEFAULT_BG
     if (active.type === "separator") return cfg.separator
     if (active.type === "qrpage") return cfg.qrPage
+    if (active.type === "roundstart") return cfg.roundStart
     return cfg.questionTypes["abcdef"] ?? DEFAULT_BG
   })()
 
@@ -203,12 +206,14 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
     if (active.type === "page") return cfg.pages.find(p => p.id === active.id)?.name ?? ""
     if (active.type === "separator") return cfg.separator.name
     if (active.type === "qrpage") return cfg.qrPage.name
+    if (active.type === "roundstart") return cfg.roundStart.name
     return "Náhled"
   })()
 
   const isSeparator = active.type === "separator"
   const isPage = active.type === "page"
   const isQrPage = active.type === "qrpage"
+  const isRoundStart = active.type === "roundstart"
 
   return (
     <div className="sticky top-24 rounded-xl overflow-hidden border border-white/[0.08]">
@@ -218,7 +223,12 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
       </div>
 
       <div className="min-h-[300px] flex flex-col" style={{ ...bgStyle(bg), fontFamily: cfg.fontFamily }}>
-        {isSeparator ? (
+        {isRoundStart ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+            <div className="text-xs font-bold tracking-widest uppercase opacity-50" style={{ color: cfg.accentColor }}>Kolo 1</div>
+            <h2 className="text-3xl font-black" style={{ color: cfg.textColor }}>{cfg.roundStart.name || "Kolo"}</h2>
+          </div>
+        ) : isSeparator ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
             <div className="w-16 h-0.5 rounded-full" style={{ backgroundColor: cfg.accentColor }} />
             <span className="text-lg font-bold" style={{ color: cfg.textColor }}>{cfg.separator.name || "Oddělovač"}</span>
@@ -316,6 +326,8 @@ function TemplateFormInner() {
     setCfg(prev => ({ ...prev, separator: { ...prev.separator, ...patch } }))
   const setQrPage = (patch: Partial<typeof cfg.qrPage>) =>
     setCfg(prev => ({ ...prev, qrPage: { ...prev.qrPage, ...patch } }))
+  const setRoundStart = (patch: Partial<typeof cfg.roundStart>) =>
+    setCfg(prev => ({ ...prev, roundStart: { ...prev.roundStart, ...patch } }))
 
   const addPage = () => {
     const id = uid()
@@ -347,6 +359,7 @@ function TemplateFormInner() {
             pages: c.pages ?? prev.pages,
             separator: c.separator ?? prev.separator,
             qrPage: c.qrPage ?? prev.qrPage,
+            roundStart: c.roundStart ?? prev.roundStart,
           }))
         }
       })
@@ -567,6 +580,26 @@ function TemplateFormInner() {
             </div>
             <BgEditor label="Pozadí" value={cfg.qrPage}
               onChange={patch => setQrPage(patch as any)} />
+          </SectionBlock>
+
+          {/* Kolo */}
+          <SectionBlock title="Kolo (slide start kola)" color="#7c3aed" open={openSection === "roundstart"}
+            onToggle={() => toggle("roundstart", { type: "roundstart" })}
+            preview={
+              <span className="text-xs text-gray-500 italic mr-1 truncate max-w-[120px]">
+                {cfg.roundStart.name || "Kolo"}
+              </span>
+            }>
+            <p className="text-xs text-gray-500 leading-relaxed -mt-1 mb-1">
+              Slide zobrazený na začátku každého kola.
+            </p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5">Název (zobrazuje se napříč systémem)</label>
+              <input value={cfg.roundStart.name} onChange={e => setRoundStart({ name: e.target.value })}
+                className={inputCls} placeholder="Kolo…" />
+            </div>
+            <BgEditor label="Pozadí" value={cfg.roundStart}
+              onChange={patch => setRoundStart(patch as any)} />
           </SectionBlock>
 
         </div>

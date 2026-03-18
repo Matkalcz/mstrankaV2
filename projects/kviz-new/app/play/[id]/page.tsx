@@ -114,7 +114,7 @@ function buildSlides(quiz: QuizData): Slide[] {
         noAnswerPhase: hasSeparator,   // přeskočíme odpověď — přijde po oddělovači
       })
     } else if (item.type === 'separator') {
-      slides.push({ type: 'separator', title: item.title || 'Opakování odpovědí' })
+      slides.push({ type: 'separator', title: item.title })
       // Přidáme opakování otázek s okamžitě zobrazenou odpovědí
       const prevQuestions = slides
         .filter(s => s.type === 'question' && !s.showAnswer)
@@ -339,23 +339,23 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
     <div className="flex flex-col h-full">
 
       {/* ── Horní lišta — číslo otázky v kole ── */}
-      {questionInRound && (
-        <div className="flex items-center justify-center pt-8 pb-2 shrink-0">
+      <div className="flex items-center justify-center pt-7 pb-1 shrink-0 min-h-[52px]">
+        {questionInRound && (
           <span className="text-2xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
             {questionInRound}{totalInRound ? `\u00a0/\u00a0${totalInRound}` : ''}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Text otázky ── */}
-      <div className="flex-1 flex items-center justify-center px-12">
+      <div className="flex-1 flex items-center justify-center px-12 py-4">
         <h2 className="text-4xl font-bold text-center leading-tight max-w-4xl" style={{ color: textColor }}>
           {q.text}
         </h2>
       </div>
 
       {/* ── Odpovědi / možnosti ── */}
-      <div className="px-12 pb-4 shrink-0">
+      <div className="px-12 pb-2 shrink-0">
 
         {/* simple */}
         {q.type === 'simple' && showAnswer && (
@@ -366,24 +366,25 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* abcdef */}
+        {/* abcdef — gray border, colored letter badge, highlight correct */}
         {q.type === 'abcdef' && opts.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full">
-            {opts.map((opt, i) => {
-              const col = OPTION_COLORS[i] || OPTION_COLORS[0]
-              return (
-                <div key={i}
-                  className={`rounded-2xl px-5 py-4 flex items-center gap-4 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
-                    showAnswer && opt.correct ? 'scale-[1.02] shadow-lg' : showAnswer && !opt.correct ? 'opacity-30' : ''
-                  }`}>
-                  <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0 ${col.label}`}>
-                    {OPTION_LETTERS[i]}
-                  </span>
-                  <span className="text-lg font-semibold text-white leading-snug">{opt.text}</span>
-                  {showAnswer && opt.correct && <span className="ml-auto text-white text-2xl font-bold">✓</span>}
-                </div>
-              )
-            })}
+          <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto w-full">
+            {opts.map((opt, i) => (
+              <div key={i}
+                className={`rounded-2xl px-5 py-3.5 flex items-center gap-4 border transition-all duration-300 ${
+                  showAnswer && opt.correct
+                    ? 'border-white/40 bg-white/10 scale-[1.02]'
+                    : showAnswer && !opt.correct
+                    ? 'border-white/8 opacity-30'
+                    : 'border-white/20 bg-white/5'
+                }`}>
+                <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black text-white shrink-0 ${OPTION_COLORS[i]?.label || 'bg-gray-600'}`}>
+                  {OPTION_LETTERS[i]}
+                </span>
+                <span className="text-lg font-semibold leading-snug" style={{ color: textColor }}>{opt.text}</span>
+                {showAnswer && opt.correct && <span className="ml-auto text-2xl font-bold" style={{ color: textColor }}>✓</span>}
+              </div>
+            ))}
           </div>
         )}
 
@@ -460,13 +461,13 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
       </div>
 
       {/* ── Spodní lišta — číslo kola ── */}
-      {roundNumber !== undefined && (
-        <div className="flex items-center justify-center pb-6 pt-2 shrink-0">
-          <span className="text-4xl font-black tracking-tight" style={{ color: textColor, opacity: 0.35 }}>
+      <div className="flex items-center justify-center pb-5 pt-3 shrink-0 min-h-[72px]">
+        {roundNumber !== undefined && (
+          <span className="text-5xl font-black tracking-tight" style={{ color: textColor, opacity: 0.65 }}>
             {roundNumber}. kolo
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -475,16 +476,15 @@ function QrPageSlide({ slide, textColor }: { slide: Slide; textColor: string }) 
   const startUrl = typeof window !== 'undefined'
     ? `${window.location.protocol}//${window.location.host}/start`
     : 'https://kviz.michaljanda.com/start'
-  const hasContent = slide.title || slide.content
   return (
     <div className="flex h-full">
-      <div className={`flex flex-col items-center justify-center gap-6 px-16 ${hasContent ? 'w-1/2' : 'w-full'}`}>
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
         <div className="bg-white p-5 rounded-3xl shadow-2xl">
           <QRCodeSVG value={startUrl} size={260} level="M" />
         </div>
         <p className="text-sm text-center font-mono" style={{ color: textColor, opacity: 0.5 }}>{startUrl}</p>
       </div>
-      {hasContent && (
+      {(slide.title || slide.content) && (
         <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/10">
           {slide.title && <h2 className="text-4xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
           {slide.content && <p className="text-xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
@@ -712,20 +712,21 @@ export default function PlayPage() {
         </div>
 
         {/* ── Spodní ovládání ── */}
-        <div className="flex items-center px-0 py-4 shrink-0 relative"
+        <div className="flex items-center px-3 py-4 shrink-0 gap-3"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 100%)', backdropFilter: 'blur(8px)' }}>
 
           {/* Restart — modrá, krajní levá */}
           <button onClick={goToStart} title="Začít znovu"
-            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all shrink-0 ml-0">
+            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all shrink-0">
             <RotateCcw size={22} className="text-white" />
           </button>
 
-          {/* Střed: Zpět + Hlavní akce + Přeskočit */}
-          <div className="flex items-center justify-center gap-5 flex-1">
+          {/* Prostřední blok */}
+          <div className="flex items-center justify-center flex-1 gap-10">
+
             {/* Zpět — oranžová */}
             <button onClick={handleBack} disabled={!canGoBack} title="Zpět (←)"
-              className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all">
+              className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all shrink-0">
               <ChevronLeft size={28} className="text-white" />
             </button>
 
@@ -737,14 +738,15 @@ export default function PlayPage() {
 
             {/* Přeskočit — zelená */}
             <button onClick={handleSkipForward} disabled={!canSkip} title="Přeskočit (→)"
-              className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all">
+              className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all shrink-0">
               <ChevronRight size={28} className="text-white" />
             </button>
+
           </div>
 
           {/* Zavřít — červená, krajní pravá */}
           <button onClick={handleClose} title="Zavřít (Esc)"
-            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center shadow-xl shadow-red-500/30 transition-all shrink-0 mr-0">
+            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center shadow-xl shadow-red-500/30 transition-all shrink-0">
             <X size={22} className="text-white" />
           </button>
         </div>
