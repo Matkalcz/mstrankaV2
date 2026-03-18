@@ -1,6 +1,6 @@
 // app/api/media/[filename]/route.ts — slouží nahrané soubory z data/uploads/
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile, stat } from 'fs/promises'
+import { readFile, stat, unlink } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 
@@ -38,5 +38,26 @@ export async function GET(
   } catch (err) {
     console.error('Media serve error:', err)
     return NextResponse.json({ error: 'Chyba' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ filename: string }> }
+) {
+  try {
+    const { filename } = await params
+    if (!filename || filename.includes('..') || filename.includes('/')) {
+      return NextResponse.json({ error: 'Neplatný název souboru' }, { status: 400 })
+    }
+    const uploadsDir = path.join(process.cwd(), 'data', 'uploads')
+    const filepath = path.join(uploadsDir, filename)
+    if (existsSync(filepath)) {
+      await unlink(filepath)
+    }
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('Media delete error:', err)
+    return NextResponse.json({ error: 'Chyba při mazání' }, { status: 500 })
   }
 }

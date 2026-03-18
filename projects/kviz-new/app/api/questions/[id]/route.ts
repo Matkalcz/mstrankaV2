@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unlink } from 'fs/promises'
+import { existsSync } from 'fs'
+import path from 'path'
 import { questions } from '@/lib/database'
+
+async function deleteMediaFile(mediaUrl: string | null | undefined) {
+  if (!mediaUrl || !mediaUrl.startsWith('/api/media/')) return
+  const filename = mediaUrl.split('/api/media/')[1]
+  if (!filename || filename.includes('..') || filename.includes('/')) return
+  const filepath = path.join(process.cwd(), 'data', 'uploads', filename)
+  if (existsSync(filepath)) {
+    await unlink(filepath).catch(() => {})
+  }
+}
 
 function parseQuestion(q: any) {
   if (!q) return null
@@ -44,6 +57,13 @@ export async function PUT(
       }
     }
 
+    // If media_url changed, delete old server file
+    const oldMediaUrl = (existing as any).media_url
+    const newMediaUrl = data.media_url
+    if (oldMediaUrl && newMediaUrl !== undefined && newMediaUrl !== oldMediaUrl) {
+      await deleteMediaFile(oldMediaUrl)
+    }
+
     questions.update(id, data)
     return NextResponse.json(parseQuestion(questions.getById(id)))
   } catch (error) {
@@ -61,7 +81,9 @@ export async function DELETE(
     const { id } = await params
     const existing = questions.getById(id)
     if (!existing) return NextResponse.json({ error: 'Otázka nenalezena' }, { status: 404 })
+    const mediaUrl = (existing as any).media_url
     questions.delete(id)
+    await deleteMediaFile(mediaUrl)
     return NextResponse.json({ message: 'Otázka smazána' })
   } catch (error) {
     console.error('DELETE /api/questions/[id] error:', error)

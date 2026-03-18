@@ -22,13 +22,9 @@ const NAV_ITEMS = [
   { label: "Nastavení",  href: "/admin/settings",   icon: Settings },
 ]
 
-// Gravatar fallback: zobrazí identicon podle emailu pokud není lokální avatar
-const ADMIN_EMAIL = "admin@kviz.michaljanda.com"
-const gravatarUrl = (email: string, size = 88) => {
-  // md5 není dostupný bez knihovny — použijeme UI Avatars jako fallback
-  return `https://ui-avatars.com/api/?name=Admin&size=${size}&background=7c3aed&color=fff&bold=true&rounded=true`
-}
+// SVG placeholder — vždy dostupný, žádné síťové požadavky
 const AVATAR_URL = "/admin-avatar.jpg"
+const AVATAR_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Crect width='44' height='44' rx='22' fill='%237c3aed' opacity='.25'/%3E%3Ccircle cx='22' cy='17' r='7' fill='%238b5cf6'/%3E%3Cellipse cx='22' cy='36' rx='12' ry='8' fill='%238b5cf6'/%3E%3C/svg%3E"
 
 // ── Sidebar nav item ──────────────────────────────────────────────────────────
 
@@ -114,7 +110,7 @@ function AdminSidebarInner() {
                 width={44}
                 height={44}
                 className="object-cover w-11 h-11"
-                onError={() => setAvatarSrc(gravatarUrl(ADMIN_EMAIL))}
+                onError={() => setAvatarSrc(AVATAR_FALLBACK)}
               />
             </div>
           </div>

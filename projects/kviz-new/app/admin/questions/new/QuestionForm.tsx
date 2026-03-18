@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check, Upload } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check, Upload, XCircle } from "lucide-react"
 import Link from "next/link"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
@@ -116,6 +116,16 @@ export default function QuestionForm({ tags, question, editId }: Props) {
       else alert(data.error || 'Chyba při nahrávání')
     } finally {
       setUploadingMedia(false)
+    }
+  }
+
+  async function clearMedia() {
+    const url = form.media_url
+    setForm(p => ({ ...p, media_url: '' }))
+    // If it's a server-uploaded file, delete it from disk
+    if (url && url.startsWith('/api/media/')) {
+      const filename = url.split('/api/media/')[1]
+      await fetch(`/api/media/${filename}`, { method: 'DELETE' }).catch(() => {})
     }
   }
   const newTagInputRef = useRef<HTMLInputElement>(null)
@@ -480,7 +490,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
           <div className={sectionCls + " space-y-4"}>
             <div>
               <label className={labelCls}>Audio soubor (MP3) <span className="text-red-400">*</span></label>
-              <input type="url" value={form.media_url}
+              <input type="text" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/audio.mp3" />
               <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
@@ -489,7 +499,15 @@ export default function QuestionForm({ tags, question, editId }: Props) {
                 <input type="file" accept="audio/*" className="hidden" disabled={uploadingMedia}
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
               </label>
-              {form.media_url && <audio src={form.media_url} controls className="mt-2 w-full h-10" />}
+              {form.media_url && (
+                <div className="mt-2 space-y-1.5">
+                  <audio src={form.media_url} controls className="w-full h-10" />
+                  <button type="button" onClick={clearMedia}
+                    className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <XCircle size={13} /> Odebrat médium
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <label className={labelCls}>Správná odpověď <span className="text-red-400">*</span></label>
@@ -505,7 +523,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
           <div className={sectionCls + " space-y-4"}>
             <div>
               <label className={labelCls}>Video soubor <span className="text-red-400">*</span></label>
-              <input type="url" value={form.media_url}
+              <input type="text" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/video.mp4" />
               <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
@@ -514,7 +532,15 @@ export default function QuestionForm({ tags, question, editId }: Props) {
                 <input type="file" accept="video/*" className="hidden" disabled={uploadingMedia}
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
               </label>
-              {form.media_url && <video src={form.media_url} controls className="mt-2 w-full max-h-40 rounded-lg" />}
+              {form.media_url && (
+                <div className="mt-2 space-y-1.5">
+                  <video src={form.media_url} controls className="w-full max-h-40 rounded-lg" />
+                  <button type="button" onClick={clearMedia}
+                    className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <XCircle size={13} /> Odebrat médium
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <label className={labelCls}>Správná odpověď <span className="text-red-400">*</span></label>
@@ -530,7 +556,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
           <div className={sectionCls + " space-y-4"}>
             <div>
               <label className={labelCls}>Obrázek <span className="text-red-400">*</span></label>
-              <input type="url" value={form.media_url}
+              <input type="text" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/obrazek.jpg" />
               <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
@@ -540,10 +566,16 @@ export default function QuestionForm({ tags, question, editId }: Props) {
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
               </label>
               {form.media_url && (
-                <img src={form.media_url} alt="Náhled"
-                  className="mt-2 max-h-48 rounded-lg border border-white/[0.08] object-contain"
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
-                  onLoad={e => { (e.target as HTMLImageElement).style.display = "block" }} />
+                <div className="mt-2 space-y-1.5">
+                  <img src={form.media_url} alt="Náhled"
+                    className="max-h-48 rounded-lg border border-white/[0.08] object-contain w-full"
+                    onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+                    onLoad={e => { (e.target as HTMLImageElement).style.display = "block" }} />
+                  <button type="button" onClick={clearMedia}
+                    className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <XCircle size={13} /> Odebrat médium
+                  </button>
+                </div>
               )}
               <p className="text-[11px] text-gray-600 mt-1.5">
                 Klik 1 = text otázky · Klik 2 = celá obrazovka · Klik 3 = další otázka
