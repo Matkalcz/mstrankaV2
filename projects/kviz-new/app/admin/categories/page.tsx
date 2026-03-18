@@ -89,9 +89,9 @@ export default function TagsAdminPage() {
 
   const load = () => {
     setLoading(true)
-    fetch('/api/tags')
+    fetch('/api/tags?_t=' + Date.now(), { cache: 'no-store' })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(data => { setTagsList(data); setError(null) })
+      .then(data => { setTagsList(Array.isArray(data) ? data : []); setError(null) })
       .catch(err => setError(`Nepodařilo se načíst tagy: ${err.message}`))
       .finally(() => setLoading(false))
   }
