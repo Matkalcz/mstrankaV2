@@ -29,6 +29,16 @@ interface PageConfig extends BgConfig {
   name: string
 }
 
+interface SkeletonBlock {
+  id: string
+  type: 'round_start' | 'question_block' | 'separator' | 'qr_page' | 'page'
+  title?: string
+  subtitle?: string
+  roundNumber?: number
+  count?: number        // for question_block: number of empty question slots
+  templatePageId?: string
+}
+
 interface TemplateConfig {
   description: string
   textColor: string
@@ -40,6 +50,7 @@ interface TemplateConfig {
   separator: { name: string } & BgConfig
   qrPage: { name: string } & BgConfig
   roundStart: { name: string } & BgConfig
+  skeleton?: SkeletonBlock[]
 }
 
 // ─── Výchozí hodnoty ───────────────────────────────────────────────────────────
@@ -47,12 +58,12 @@ interface TemplateConfig {
 const DEFAULT_BG: BgConfig = { bgType: "solid", bg1: "#1a1c2e", bg2: "#2d1b69", bgImage: "" }
 
 const Q_TYPE_DEFAULTS: Record<string, { label: string; defaultName: string; color: string }> = {
-  simple:  { label: "Otázka",  defaultName: "Otázka",  color: "#3b82f6" },
-  ab:      { label: "AB otázka",     defaultName: "AB otázka",     color: "#8b5cf6" },
-  abcdef:  { label: "AB otázka",  defaultName: "AB otázka",  color: "#6366f1" },
-  bonus:   { label: "Bonusová",          defaultName: "Bonusová otázka", color: "#f59e0b" },
+  simple:  { label: "Prostá otázka",  defaultName: "Prostá otázka",  color: "#3b82f6" },
+  abcdef:  { label: "ABCDEF otázka",  defaultName: "ABCDEF otázka",  color: "#6366f1" },
+  bonus:   { label: "Bonusová otázka", defaultName: "Bonusová otázka", color: "#f59e0b" },
   audio:   { label: "Audio otázka",   defaultName: "Audio otázka",   color: "#ec4899" },
   video:   { label: "Video otázka",   defaultName: "Video otázka",   color: "#10b981" },
+  image:   { label: "Obrázková",      defaultName: "Obrázková",      color: "#f97316" },
 }
 
 const FONTS = [
@@ -74,6 +85,7 @@ function makeDefaultConfig(): TemplateConfig {
     separator: { name: "Opakování odpovědí", ...DEFAULT_BG, bg1: "#0a0a1a" },
     qrPage: { name: "QR stránka", ...DEFAULT_BG, bg1: "#0d0f2a" },
     roundStart: { name: "Kolo", ...DEFAULT_BG, bg1: "#1a0a3e" },
+    skeleton: [],
   }
 }
 
@@ -185,6 +197,119 @@ function SectionBlock({ title, color, preview, open, onToggle, children }: {
         {open ? <ChevronDown size={15} className="text-gray-500 shrink-0" /> : <ChevronRight size={15} className="text-gray-500 shrink-0" />}
       </button>
       {open && <div className="px-5 pb-5 pt-1 border-t border-white/[0.06] space-y-4">{children}</div>}
+    </div>
+  )
+}
+
+// ─── Skeleton builder ──────────────────────────────────────────────────────────
+
+function SkeletonBuilder({ value, onChange }: {
+  value: SkeletonBlock[]
+  onChange: (v: SkeletonBlock[]) => void
+}) {
+  const inputCls = "rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+  const add = (type: SkeletonBlock['type']) => {
+    const id = uid()
+    const base: SkeletonBlock = { id, type }
+    if (type === 'round_start') { base.roundNumber = value.filter(b => b.type === 'round_start').length + 1; base.title = '' }
+    if (type === 'question_block') base.count = 5
+    onChange([...value, base])
+  }
+  const remove = (id: string) => onChange(value.filter(b => b.id !== id))
+  const update = (id: string, patch: Partial<SkeletonBlock>) =>
+    onChange(value.map(b => b.id === id ? { ...b, ...patch } : b))
+  const move = (idx: number, dir: -1 | 1) => {
+    const arr = [...value]
+    const to = idx + dir
+    if (to < 0 || to >= arr.length) return
+    ;[arr[idx], arr[to]] = [arr[to], arr[idx]]
+    onChange(arr)
+  }
+
+  const BLOCK_META: Record<SkeletonBlock['type'], { label: string; color: string }> = {
+    round_start:    { label: 'Start kola',   color: '#7c3aed' },
+    question_block: { label: 'Blok otázek',  color: '#3b82f6' },
+    separator:      { label: 'Oddělovač',    color: '#f59e0b' },
+    qr_page:        { label: 'QR stránka',   color: '#06b6d4' },
+    page:           { label: 'Stránka',      color: '#6b7280' },
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-gray-500 leading-relaxed">
+        Definuj strukturu kvízu — při vytváření nového kvízu z šablony se automaticky vygeneruje tato kostra. Otázky v blocích jsou prázdné — moderátor je vyplní v sestavovači.
+      </p>
+      {value.length === 0 && (
+        <div className="text-center py-8 text-gray-600 text-sm border border-dashed border-white/[0.08] rounded-xl">
+          Prázdná kostra — přidej komponenty níže
+        </div>
+      )}
+      {value.map((block, idx) => {
+        const meta = BLOCK_META[block.type]
+        return (
+          <div key={block.id} className="flex items-start gap-2 bg-white/[0.03] border border-white/[0.07] rounded-xl p-3">
+            <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
+              <button onClick={() => move(idx, -1)} disabled={idx === 0}
+                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors">
+                ▲
+              </button>
+              <button onClick={() => move(idx, 1)} disabled={idx === value.length - 1}
+                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors">
+                ▼
+              </button>
+            </div>
+            <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ backgroundColor: meta.color }} />
+            <div className="flex-1 space-y-2 min-w-0">
+              <span className="text-sm font-semibold text-gray-200">{meta.label}</span>
+              {block.type === 'round_start' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" min={1} value={block.roundNumber || 1}
+                    onChange={e => update(block.id, { roundNumber: parseInt(e.target.value) || 1 })}
+                    placeholder="Číslo kola"
+                    className={inputCls + ' [color-scheme:dark]'} />
+                  <input value={block.title || ''}
+                    onChange={e => update(block.id, { title: e.target.value })}
+                    placeholder="Název kola (volitelné)"
+                    className={inputCls} />
+                </div>
+              )}
+              {block.type === 'question_block' && (
+                <div className="flex items-center gap-2">
+                  <input type="number" min={1} max={50} value={block.count || 5}
+                    onChange={e => update(block.id, { count: parseInt(e.target.value) || 1 })}
+                    className={inputCls + ' w-20 [color-scheme:dark]'} />
+                  <span className="text-xs text-gray-500">prázdných otázek</span>
+                </div>
+              )}
+              {block.type === 'separator' && (
+                <input value={block.title || ''}
+                  onChange={e => update(block.id, { title: e.target.value })}
+                  placeholder="Název oddělovače (volitelné)"
+                  className={inputCls + ' w-full'} />
+              )}
+            </div>
+            <button onClick={() => remove(block.id)}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )
+      })}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {([
+          ['round_start', 'Start kola'],
+          ['question_block', 'Blok otázek'],
+          ['separator', 'Oddělovač'],
+          ['qr_page', 'QR stránka'],
+          ['page', 'Stránka'],
+        ] as [SkeletonBlock['type'], string][]).map(([type, label]) => (
+          <button key={type} onClick={() => add(type)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white bg-white/[0.04] border border-white/[0.08] hover:border-white/20 transition-colors">
+            <Plus size={12} />
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -328,6 +453,7 @@ function TemplateFormInner() {
     setCfg(prev => ({ ...prev, qrPage: { ...prev.qrPage, ...patch } }))
   const setRoundStart = (patch: Partial<typeof cfg.roundStart>) =>
     setCfg(prev => ({ ...prev, roundStart: { ...prev.roundStart, ...patch } }))
+  const setSkeleton = (v: SkeletonBlock[]) => setCfg(prev => ({ ...prev, skeleton: v }))
 
   const addPage = () => {
     const id = uid()
@@ -360,6 +486,7 @@ function TemplateFormInner() {
             separator: c.separator ?? prev.separator,
             qrPage: c.qrPage ?? prev.qrPage,
             roundStart: c.roundStart ?? prev.roundStart,
+            skeleton: c.skeleton ?? prev.skeleton,
           }))
         }
       })
@@ -582,8 +709,8 @@ function TemplateFormInner() {
               onChange={patch => setQrPage(patch as any)} />
           </SectionBlock>
 
-          {/* Kolo */}
-          <SectionBlock title="Kolo (slide start kola)" color="#7c3aed" open={openSection === "roundstart"}
+          {/* Start kola */}
+          <SectionBlock title="Start kola" color="#7c3aed" open={openSection === "roundstart"}
             onToggle={() => toggle("roundstart", { type: "roundstart" })}
             preview={
               <span className="text-xs text-gray-500 italic mr-1 truncate max-w-[120px]">
@@ -600,6 +727,17 @@ function TemplateFormInner() {
             </div>
             <BgEditor label="Pozadí" value={cfg.roundStart}
               onChange={patch => setRoundStart(patch as any)} />
+          </SectionBlock>
+
+          {/* Kostra kvízu */}
+          <SectionBlock title="Kostra kvízu" color="#10b981" open={openSection === "skeleton"}
+            onToggle={() => { setOpenSection(prev => prev === "skeleton" ? "" : "skeleton") }}
+            preview={
+              cfg.skeleton && cfg.skeleton.length > 0
+                ? <span className="text-xs text-emerald-400 mr-1">{cfg.skeleton.length} bloků</span>
+                : <span className="text-xs text-gray-600 mr-1">prázdná</span>
+            }>
+            <SkeletonBuilder value={cfg.skeleton || []} onChange={setSkeleton} />
           </SectionBlock>
 
         </div>

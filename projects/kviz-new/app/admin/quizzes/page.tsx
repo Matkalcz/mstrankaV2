@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive } from "lucide-react"
+import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive, X, Palette, Loader2 } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
 interface Quiz {
@@ -30,6 +30,209 @@ const STATUS_META = {
   archived:  { label: "Archivován",  bg: "bg-gray-500/20",    text: "text-gray-400",    dot: "bg-gray-500"   },
 }
 
+// ─── NewQuizModal ──────────────────────────────────────────────────────────────
+
+interface TemplateForModal {
+  id: string
+  name: string
+  config?: {
+    skeleton?: Array<{ type: string; count?: number; title?: string; roundNumber?: number }>
+    textColor?: string
+    accentColor?: string
+    bg1?: string
+  }
+}
+
+function skeletonSummary(skeleton: TemplateForModal['config']['skeleton']): string {
+  if (!skeleton || skeleton.length === 0) return 'Prázdná šablona'
+  const parts: string[] = []
+  let qTotal = 0
+  let rounds = 0
+  for (const b of skeleton) {
+    if (b.type === 'round_start') rounds++
+    if (b.type === 'question_block') qTotal += (b.count || 5)
+  }
+  if (rounds > 0) parts.push(`${rounds} kol`)
+  if (qTotal > 0) parts.push(`${qTotal} otázek`)
+  return parts.length > 0 ? parts.join(' · ') : `${skeleton.length} bloků`
+}
+
+function applySkeletonToSequence(skeleton: TemplateForModal['config']['skeleton']): any[] {
+  if (!skeleton) return []
+  const sequence: any[] = []
+  for (const block of skeleton) {
+    const id = Math.random().toString(36).slice(2)
+    if (block.type === 'round_start') {
+      sequence.push({ type: 'round_start', id, roundNumber: block.roundNumber || 1, title: block.title || '', subtitle: '' })
+    } else if (block.type === 'question_block') {
+      for (let i = 0; i < (block.count || 5); i++) {
+        sequence.push({ type: 'question', id: Math.random().toString(36).slice(2), questionId: null })
+      }
+    } else if (block.type === 'separator') {
+      sequence.push({ type: 'separator', id, title: block.title || '' })
+    } else if (block.type === 'qr_page') {
+      sequence.push({ type: 'qr_page', id })
+    } else if (block.type === 'page') {
+      sequence.push({ type: 'page', id })
+    }
+  }
+  return sequence
+}
+
+function NewQuizModal({ templates, onClose, onCreated }: {
+  templates: TemplateForModal[]
+  onClose: () => void
+  onCreated: (id: string) => void
+}) {
+  const [step, setStep] = useState<'pick' | 'name'>('pick')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateForModal | null>(null)
+  const [quizName, setQuizName] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  const pickTemplate = (t: TemplateForModal | null) => {
+    setSelectedTemplate(t)
+    setQuizName(t ? `Kvíz – ${t.name}` : 'Nový kvíz')
+    setStep('name')
+  }
+
+  const handleCreate = async () => {
+    if (!quizName.trim()) return
+    setCreating(true)
+    try {
+      const skeleton = selectedTemplate?.config?.skeleton
+      const sequence = skeleton && skeleton.length > 0 ? applySkeletonToSequence(skeleton) : []
+      const payload: any = {
+        name: quizName.trim(),
+        status: 'draft',
+        template_id: selectedTemplate?.id || null,
+      }
+      if (sequence.length > 0) payload.sequence = JSON.stringify(sequence)
+      const res = await fetch('/api/quizzes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Chyba')
+      const data = await res.json()
+      onCreated(data.id)
+    } catch {
+      alert('Nepodařilo se vytvořit kvíz')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#13152a] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-white">
+              {step === 'pick' ? 'Nový kvíz' : 'Pojmenuj kvíz'}
+            </h2>
+            {step === 'pick' && <p className="text-sm text-gray-500 mt-0.5">Vyber šablonu nebo vytvoř prázdný kvíz</p>}
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {step === 'pick' ? (
+          <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {/* Prázdný kvíz */}
+            <button onClick={() => pickTemplate(null)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-white/[0.12] hover:border-violet-500/50 hover:bg-violet-500/5 transition-all text-left group">
+              <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0 group-hover:bg-violet-500/10 transition-colors">
+                <Plus size={22} className="text-gray-500 group-hover:text-violet-400" />
+              </div>
+              <div>
+                <div className="text-[15px] font-semibold text-gray-300 group-hover:text-white transition-colors">Prázdný kvíz</div>
+                <div className="text-[13px] text-gray-600 mt-0.5">Bez šablony, vše nastavíš ručně</div>
+              </div>
+            </button>
+
+            {/* Templates */}
+            {templates.length > 0 && (
+              <>
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider pt-1">Šablony</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {templates.map(t => {
+                    const hasSkeleton = t.config?.skeleton && t.config.skeleton.length > 0
+                    return (
+                      <button key={t.id} onClick={() => pickTemplate(t)}
+                        className="flex items-start gap-3 p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group">
+                        <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center border border-white/10"
+                          style={{ backgroundColor: t.config?.accentColor ? t.config.accentColor + '22' : '#7c3aed22' }}>
+                          <Palette size={18} style={{ color: t.config?.accentColor || '#7c3aed' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[14px] font-semibold text-gray-200 group-hover:text-white transition-colors truncate">{t.name}</div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {hasSkeleton ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-semibold">
+                                ✓ {skeletonSummary(t.config?.skeleton)}
+                              </span>
+                            ) : (
+                              <span className="text-[12px] text-gray-600">Jen vizuální šablona</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 p-6 space-y-5">
+            {selectedTemplate && (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: selectedTemplate.config?.accentColor ? selectedTemplate.config.accentColor + '22' : '#7c3aed22' }}>
+                  <Palette size={15} style={{ color: selectedTemplate.config?.accentColor || '#7c3aed' }} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-200">{selectedTemplate.name}</div>
+                  {selectedTemplate.config?.skeleton && selectedTemplate.config.skeleton.length > 0 && (
+                    <div className="text-xs text-emerald-400 mt-0.5">{skeletonSummary(selectedTemplate.config.skeleton)}</div>
+                  )}
+                </div>
+                <button onClick={() => setStep('pick')} className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition-colors">Změnit</button>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Název kvízu</label>
+              <input
+                value={quizName}
+                onChange={e => setQuizName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                autoFocus
+                className="w-full rounded-xl border border-white/[0.1] bg-[#191b2e] px-4 py-3 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                placeholder="Název kvízu…"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleCreate} disabled={creating || !quizName.trim()}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold text-sm disabled:opacity-50 transition-all active:scale-[0.98]">
+                {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                Vytvořit kvíz
+              </button>
+              <button onClick={() => setStep('pick')}
+                className="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">
+                Zpět
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
+
 export default function QuizzesPage() {
   const router = useRouter()
   const [quizzes, setQuizzes]     = useState<Quiz[]>([])
@@ -38,6 +241,8 @@ export default function QuizzesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch]       = useState("")
   const [statusFilter, setStatusFilter] = useState<Quiz["status"] | "">("")
+  const [showModal, setShowModal] = useState(false)
+  const [templatesForModal, setTemplatesForModal] = useState<TemplateForModal[]>([])
 
   const load = () => {
     setLoading(true)
@@ -52,6 +257,13 @@ export default function QuizzesPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    fetch('/api/templates')
+      .then(r => r.json())
+      .then(data => setTemplatesForModal(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Smazat kvíz?\n\n"${name}"`)) return
@@ -78,7 +290,12 @@ export default function QuizzesPage() {
       <AdminPageHeader
         title="Kvízy"
         subtitle={`${quizzes.length} kvízů celkem`}
-        action={<ActionButton href="/admin/quizzes/new"><Plus size={15} /> Nový kvíz</ActionButton>}
+        action={
+          <button onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 transition-all active:scale-95">
+            <Plus size={15} /> Nový kvíz
+          </button>
+        }
       />
 
       <div className="px-8 py-6 space-y-5">
@@ -199,6 +416,14 @@ export default function QuizzesPage() {
           </DarkCard>
         )}
       </div>
+
+      {showModal && (
+        <NewQuizModal
+          templates={templatesForModal}
+          onClose={() => setShowModal(false)}
+          onCreated={(id) => { setShowModal(false); router.push(`/admin/quizzes/${id}`) }}
+        />
+      )}
     </div>
   )
 }
