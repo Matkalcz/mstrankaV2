@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check } from "lucide-react"
 import Link from "next/link"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
@@ -98,6 +98,38 @@ export default function QuestionForm({ tags, question, editId }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tagSearch, setTagSearch] = useState("")
+  const [localTags, setLocalTags] = useState<TagItem[]>(tags)
+  const [newTagOpen, setNewTagOpen] = useState(false)
+  const [newTagName, setNewTagName] = useState("")
+  const [newTagColor, setNewTagColor] = useState("#7c3aed")
+  const [newTagSaving, setNewTagSaving] = useState(false)
+  const newTagInputRef = useRef<HTMLInputElement>(null)
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return
+    setNewTagSaving(true)
+    try {
+      const res = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTagName.trim(), color: newTagColor }),
+      })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error((b as any).error || `HTTP ${res.status}`)
+      }
+      const created: TagItem = await res.json()
+      setLocalTags(prev => [...prev, created])
+      setForm(prev => ({ ...prev, selectedTagIds: [...prev.selectedTagIds, created.id] }))
+      setNewTagName("")
+      setNewTagColor("#7c3aed")
+      setNewTagOpen(false)
+    } catch (err: any) {
+      alert(`Chyba: ${err.message}`)
+    } finally {
+      setNewTagSaving(false)
+    }
+  }
 
   const handleTypeChange = useCallback((newType: QuestionType) => {
     setForm(prev => ({
@@ -190,8 +222,8 @@ export default function QuestionForm({ tags, question, editId }: Props) {
   }
 
   const filteredTags = tagSearch.trim()
-    ? tags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()))
-    : tags
+    ? localTags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+    : localTags
 
   // Shared class strings
   const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
@@ -283,12 +315,40 @@ export default function QuestionForm({ tags, question, editId }: Props) {
             <span className="text-xs font-semibold text-gray-400">
               Tagy {form.selectedTagIds.length > 0 && <span className="text-violet-400">({form.selectedTagIds.length})</span>}
             </span>
+            <button type="button"
+              onClick={() => { setNewTagOpen(o => !o); setTimeout(() => newTagInputRef.current?.focus(), 50) }}
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15 border border-violet-500/30 transition-colors"
+              title="Přidat nový tag">
+              <Plus size={11} /> Nový tag
+            </button>
           </div>
+
+          {/* Inline new tag form */}
+          {newTagOpen && (
+            <div className="flex items-center gap-2 p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+              <input type="color" value={newTagColor} onChange={e => setNewTagColor(e.target.value)}
+                className="h-7 w-8 rounded cursor-pointer border border-white/10 bg-transparent p-0.5 shrink-0" />
+              <input ref={newTagInputRef} type="text" value={newTagName}
+                onChange={e => setNewTagName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleCreateTag() } if (e.key === "Escape") setNewTagOpen(false) }}
+                placeholder="Název tagu…"
+                className="flex-1 rounded-md border border-white/[0.1] bg-[#191b2e] px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+              <button type="button" onClick={handleCreateTag}
+                disabled={newTagSaving || !newTagName.trim()}
+                className="p-1.5 rounded-md bg-violet-600 hover:bg-violet-500 disabled:opacity-40 transition-colors" title="Uložit">
+                {newTagSaving ? <Loader2 size={12} className="animate-spin text-white" /> : <Check size={12} className="text-white" />}
+              </button>
+              <button type="button" onClick={() => { setNewTagOpen(false); setNewTagName("") }}
+                className="p-1.5 rounded-md text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors" title="Zrušit">
+                <X size={12} />
+              </button>
+            </div>
+          )}
 
           {form.selectedTagIds.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {form.selectedTagIds.map(id => {
-                const tag = tags.find(t => t.id === id)
+                const tag = localTags.find(t => t.id === id)
                 if (!tag) return null
                 return (
                   <span key={id}
