@@ -149,12 +149,13 @@ function FilterPill({ label, value, options, onChange }: {
   )
 }
 
-// ─── Modal pro výběr otázek (multi-select) ────────────────────────────────────
+// ─── Modal pro výběr otázek (multi-select nebo single-select pro slot) ────────
 
-function QuestionModal({ questions, onSelect, onClose }: {
+function QuestionModal({ questions, onSelect, onClose, singleMode = false }: {
   questions: QuestionData[]
   onSelect: (qs: QuestionData[]) => void
   onClose: () => void
+  singleMode?: boolean
 }) {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -175,8 +176,15 @@ function QuestionModal({ questions, onSelect, onClose }: {
     return matchSearch && matchType && matchDiff && matchTag
   })
 
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
+    if (singleMode) {
+      // Single mode: okamžitý výběr
+      const q = questions.find(q => q.id === id)
+      if (q) { onSelect([q]) }
+      return
+    }
     setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  }
 
   const toggleAll = () => {
     if (filtered.every(q => selected.has(q.id))) {
@@ -200,7 +208,7 @@ function QuestionModal({ questions, onSelect, onClose }: {
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
-          <h2 className="text-lg font-bold text-white">Vybrat otázky</h2>
+          <h2 className="text-lg font-bold text-white">{singleMode ? 'Vybrat otázku' : 'Vybrat otázky'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
 
@@ -253,8 +261,8 @@ function QuestionModal({ questions, onSelect, onClose }: {
           )}
         </div>
 
-        {/* Select all row */}
-        {filtered.length > 0 && (
+        {/* Select all row — jen multi mode */}
+        {!singleMode && filtered.length > 0 && (
           <div className="px-6 py-2 border-b border-white/[0.04] flex items-center gap-3">
             <button onClick={toggleAll}
               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
@@ -318,24 +326,26 @@ function QuestionModal({ questions, onSelect, onClose }: {
           })}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/[0.08] flex items-center justify-between gap-4">
-          <span className="text-xs text-gray-500">
-            {selected.size > 0
-              ? <span className="text-violet-300 font-semibold">{selected.size} vybraných</span>
-              : `${filtered.length} otázek`}
-          </span>
-          <div className="flex gap-2">
-            <button onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">
-              Zrušit
-            </button>
-            <button onClick={handleConfirm} disabled={selected.size === 0}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg shadow-violet-500/20">
-              <Plus size={14} /> Přidat {selected.size > 0 ? `(${selected.size})` : ''}
-            </button>
+        {/* Footer — jen multi mode */}
+        {!singleMode && (
+          <div className="px-6 py-3 border-t border-white/[0.08] flex items-center justify-between gap-4">
+            <span className="text-xs text-gray-500">
+              {selected.size > 0
+                ? <span className="text-violet-300 font-semibold">{selected.size} vybraných</span>
+                : `${filtered.length} otázek`}
+            </span>
+            <div className="flex gap-2">
+              <button onClick={onClose}
+                className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">
+                Zrušit
+              </button>
+              <button onClick={handleConfirm} disabled={selected.size === 0}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg shadow-violet-500/20">
+                <Plus size={14} /> Přidat {selected.size > 0 ? `(${selected.size})` : ''}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -499,6 +509,7 @@ export default function QuizBuilderPage() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [slotKey, setSlotKey] = useState<string | null>(null)  // klíč slotu pro single výběr
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
@@ -551,6 +562,14 @@ export default function QuizBuilderPage() {
       questionType: q.type,
     }))])
     setShowModal(false)
+  }
+
+  // Přiřadit otázku do konkrétního slotu (ikona + na prázdné otázce)
+  const assignToSlot = (qs: QuestionData[]) => {
+    if (!slotKey || qs.length === 0) { setSlotKey(null); return }
+    const q = qs[0]
+    updateItem(slotKey, { questionId: q.id, questionText: q.text, questionType: q.type })
+    setSlotKey(null)
   }
 
   const removeItem = (key: string) => setItems(prev => prev.filter(i => i._key !== key))
@@ -853,7 +872,25 @@ export default function QuizBuilderPage() {
                         </div>
 
                         {item.type === 'question' ? (
-                          <p className="text-sm text-gray-300 leading-snug line-clamp-2">{item.questionText}</p>
+                          item.questionId ? (
+                            // Otázka přiřazena — zobraz text + tlačítko Vyměnit
+                            <div className="flex items-start gap-2">
+                              <p className="text-sm text-gray-300 leading-snug line-clamp-2 flex-1">{item.questionText}</p>
+                              <button
+                                onClick={() => setSlotKey(item._key)}
+                                title="Vyměnit otázku"
+                                className="shrink-0 opacity-0 group-hover:opacity-60 hover:!opacity-100 p-1 rounded-lg text-gray-500 hover:text-blue-300 hover:bg-blue-500/10 transition-all">
+                                <Pencil size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            // Prázdný slot — výzva k výběru otázky
+                            <button
+                              onClick={() => setSlotKey(item._key)}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-blue-500/30 text-blue-400/70 hover:border-blue-400/60 hover:text-blue-300 hover:bg-blue-500/10 transition-colors text-xs font-medium mt-1">
+                              <Plus size={13} /> Vybrat otázku…
+                            </button>
+                          )
                         ) : (
                           <SlideEditor item={item} onChange={patch => updateItem(item._key, patch)} />
                         )}
@@ -884,6 +921,14 @@ export default function QuizBuilderPage() {
           questions={allQuestions}
           onSelect={addQuestions}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {slotKey && (
+        <QuestionModal
+          questions={allQuestions}
+          onSelect={assignToSlot}
+          onClose={() => setSlotKey(null)}
+          singleMode
         />
       )}
       {showTemplateModal && (

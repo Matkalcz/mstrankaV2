@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft, Save, Loader2, Palette, Plus, Trash2, Upload,
-  HelpCircle, FileText, Minus, ChevronDown, ChevronRight, QrCode
+  HelpCircle, FileText, Minus, ChevronDown, ChevronRight, QrCode, GripVertical
 } from "lucide-react"
 import Link from "next/link"
 
@@ -210,6 +210,17 @@ function SkeletonBuilder({ value, onChange, cfg }: {
   cfg: TemplateConfig
 }) {
   const cls = "rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500 [color-scheme:dark]"
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
+
+  const handleDrop = (target: number) => {
+    if (dragIdx === null || dragIdx === target) { setDragIdx(null); setDragOver(null); return }
+    const arr = [...value]
+    const [moved] = arr.splice(dragIdx, 1)
+    arr.splice(target, 0, moved)
+    onChange(arr)
+    setDragIdx(null); setDragOver(null)
+  }
 
   const add = (type: SkeletonBlock['type']) => {
     const id = uid()
@@ -253,14 +264,22 @@ function SkeletonBuilder({ value, onChange, cfg }: {
       )}
       {value.map((block, idx) => {
         const meta = BLOCK_META[block.type]
+        const isDragging = dragIdx === idx
+        const isOver = dragOver === idx
         return (
-          <div key={block.id} className="flex items-start gap-2 bg-white/[0.03] border border-white/[0.07] rounded-xl p-3">
-            {/* Přesun */}
-            <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
-              <button onClick={() => move(idx, -1)} disabled={idx === 0}
-                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors text-[10px] leading-none">▲</button>
-              <button onClick={() => move(idx, 1)} disabled={idx === value.length - 1}
-                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors text-[10px] leading-none">▼</button>
+          <div key={block.id}
+            draggable
+            onDragStart={() => setDragIdx(idx)}
+            onDragOver={e => { e.preventDefault(); setDragOver(idx) }}
+            onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
+            onDrop={() => handleDrop(idx)}
+            className={`flex items-start gap-2 bg-white/[0.03] border rounded-xl p-3 transition-all ${
+              isDragging ? 'opacity-40 scale-95 border-white/[0.07]' :
+              isOver ? 'border-violet-500/50 ring-1 ring-violet-500/30' : 'border-white/[0.07]'
+            }`}>
+            {/* Drag handle */}
+            <div className="shrink-0 pt-1.5 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 transition-colors">
+              <GripVertical size={14} />
             </div>
             <div className="w-2 h-2 rounded-full mt-2.5 shrink-0" style={{ backgroundColor: meta.color }} />
             <div className="flex-1 space-y-2 min-w-0">
