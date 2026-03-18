@@ -115,12 +115,26 @@ function buildSlides(quiz: QuizData): Slide[] {
   return slides
 }
 
-function computeRoundNumber(slides: Slide[], idx: number): number | undefined {
+function computeSlideInfo(slides: Slide[], idx: number) {
+  let roundNumber: number | undefined
+  let questionInRound: number | undefined
+
+  let roundStartIdx = -1
   for (let i = idx - 1; i >= 0; i--) {
-    if (slides[i].type === 'round_start') return slides[i].roundNumber
+    if (slides[i].type === 'round_start') { roundStartIdx = i; roundNumber = slides[i].roundNumber; break }
     if (slides[i].type === 'separator') break
   }
-  return undefined
+
+  if (roundStartIdx >= 0 && slides[idx]?.type === 'question' && !slides[idx].showAnswer) {
+    let pos = 0
+    for (let i = roundStartIdx + 1; i <= idx; i++) {
+      if (slides[i].type === 'round_start' || slides[i].type === 'separator') break
+      if (slides[i].type === 'question' && !slides[i].showAnswer) pos++
+    }
+    questionInRound = pos
+  }
+
+  return { roundNumber, questionInRound }
 }
 
 // ─── Option colors ─────────────────────────────────────────────────────────────
@@ -145,7 +159,8 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
   const textColor = tmpl?.textColor || '#ffffff'
   const accentColor = tmpl?.accentColor || '#8b5cf6'
-  const roundNumber = computeRoundNumber(slides, slideIdx)
+  const correctColor = tmpl?.correctColor || '#10b981'
+  const { roundNumber, questionInRound } = computeSlideInfo(slides, slideIdx)
 
   useEffect(() => {
     if (q?.type === 'audio' && phase === 1 && audioRef.current) {
@@ -174,23 +189,34 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
   if (slide.type === 'round_start') return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-center pt-8 pb-1 shrink-0 min-h-[60px]">
+      {/* Číslo kola — střed, střední velikost */}
+      <div className="flex items-center justify-center pt-16 pb-4 shrink-0">
         {slide.roundNumber !== undefined && (
-          <span className="text-3xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
-            {slide.roundNumber}. kolo
+          <span className="text-3xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.55 }}>
+            {slide.roundNumber}.kolo
           </span>
         )}
       </div>
+      {/* Název kola — velký font uprostřed */}
       <div className="flex-1 flex items-center justify-center px-16">
-        <h1 className="text-7xl font-black text-center leading-tight" style={{ color: textColor }}>
+        <h1 className="text-8xl font-black text-center leading-tight" style={{ color: textColor }}>
           {slide.title || ''}
         </h1>
       </div>
-      <div className="flex justify-center px-16 pb-20 shrink-0 min-h-[100px]">
+      {/* Popisek */}
+      <div className="flex justify-center px-16 pb-4 shrink-0 min-h-[64px]">
         {slide.subtitle && (
           <p className="text-4xl text-center" style={{ color: textColor, opacity: 0.65 }}>
             {slide.subtitle}
           </p>
+        )}
+      </div>
+      {/* Footer — malé "Kolo X" úplně dole */}
+      <div className="flex items-center justify-center pb-5 shrink-0">
+        {slide.roundNumber !== undefined && (
+          <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>
+            Kolo {slide.roundNumber}
+          </span>
         )}
       </div>
     </div>
@@ -234,15 +260,24 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   return (
     <div className="flex flex-col h-full">
 
+      {/* ── Číslo otázky — velké, uprostřed ── */}
+      <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
+        {questionInRound !== undefined && (
+          <span className="text-7xl font-black leading-none" style={{ color: textColor }}>
+            {questionInRound}.
+          </span>
+        )}
+      </div>
+
       {/* ── Text otázky ── */}
-      <div className="flex-1 flex items-center justify-center px-20 py-10">
+      <div className="flex-1 flex items-center justify-center px-20 py-4">
         <h2 className="text-5xl font-bold text-center leading-tight max-w-5xl" style={{ color: textColor }}>
           {q.text}
         </h2>
       </div>
 
       {/* ── Odpovědi ── */}
-      <div className="px-20 pb-6 shrink-0">
+      <div className="px-20 pb-4 shrink-0">
 
         {q.type === 'simple' && showAnswer && (
           <div className="flex justify-center pb-4">
@@ -253,21 +288,25 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
         )}
 
         {q.type === 'abcdef' && opts.length > 0 && (
-          <div className="grid grid-cols-2 gap-5 max-w-5xl mx-auto w-full pb-4">
+          <div className="grid grid-cols-2 gap-4 max-w-5xl mx-auto w-full pb-4">
             {opts.map((opt, i) => {
               const col = OPTION_COLORS[i] || OPTION_COLORS[0]
               return (
                 <div key={i}
-                  className={`rounded-2xl px-8 py-5 flex items-center gap-5 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
+                  className={`rounded-2xl px-8 py-5 flex items-center gap-5 border transition-all duration-300 ${
                     showAnswer && opt.correct ? 'scale-[1.02] shadow-lg'
                     : showAnswer && !opt.correct ? 'opacity-25'
                     : ''
-                  }`}>
+                  }`}
+                  style={showAnswer && opt.correct
+                    ? { borderColor: correctColor, backgroundColor: correctColor + '22' }
+                    : { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)' }
+                  }>
                   <span className={`w-14 h-14 rounded-xl flex items-center justify-center text-lg font-black text-white shrink-0 ${col.label}`}>
                     {OPTION_LETTERS[i]}
                   </span>
-                  <span className="text-2xl font-semibold text-white leading-snug">{opt.text}</span>
-                  {showAnswer && opt.correct && <span className="ml-auto text-white text-3xl font-bold">✓</span>}
+                  <span className="text-2xl font-semibold leading-snug" style={{ color: textColor }}>{opt.text}</span>
+                  {showAnswer && opt.correct && <span className="ml-auto text-3xl font-bold" style={{ color: correctColor }}>✓</span>}
                 </div>
               )
             })}
@@ -336,14 +375,14 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
         )}
       </div>
 
-      {/* ── Spodní lišta — číslo kola ── */}
-      {roundNumber !== undefined && (
-        <div className="flex items-center justify-center pb-8 shrink-0">
-          <span className="text-5xl font-black tracking-tight" style={{ color: textColor, opacity: 0.3 }}>
-            {roundNumber}. kolo
+      {/* ── Spodní footer — malé číslo kola ── */}
+      <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
+        {roundNumber !== undefined && (
+          <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>
+            Kolo {roundNumber}
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

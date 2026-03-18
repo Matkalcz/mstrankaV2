@@ -283,26 +283,34 @@ function PageSlide({ slide, textColor, roundLabel }: { slide: Slide; textColor: 
 function RoundStartSlide({ slide, textColor, accentColor }: { slide: Slide; textColor: string; accentColor: string }) {
   return (
     <div className="flex flex-col h-full">
-      {/* Číslo kola nahoře — stejná velikost jako číslo otázky */}
-      <div className="flex items-center justify-center pt-7 pb-1 shrink-0 min-h-[52px]">
+      {/* Číslo kola — střed, střední velikost */}
+      <div className="flex items-center justify-center pt-16 pb-4 shrink-0">
         {slide.roundNumber !== undefined && (
-          <span className="text-2xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
-            {slide.roundNumber}. kolo
+          <span className="text-3xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.55 }}>
+            {slide.roundNumber}.kolo
           </span>
         )}
       </div>
       {/* Název kola — velký font uprostřed */}
       <div className="flex-1 flex items-center justify-center px-12">
-        <h1 className="text-6xl font-black text-center leading-tight" style={{ color: textColor }}>
+        <h1 className="text-8xl font-black text-center leading-tight" style={{ color: textColor }}>
           {slide.title || ''}
         </h1>
       </div>
-      {/* Popisek — zvětšený, odsazený od nadpisu */}
-      <div className="flex justify-center px-12 pb-16 shrink-0 min-h-[96px]">
+      {/* Popisek */}
+      <div className="flex justify-center px-12 pb-4 shrink-0 min-h-[64px]">
         {slide.subtitle && (
           <p className="text-3xl text-center" style={{ color: textColor, opacity: 0.65 }}>
             {slide.subtitle}
           </p>
+        )}
+      </div>
+      {/* Footer — malé "Kolo X" úplně dole */}
+      <div className="flex items-center justify-center pb-5 shrink-0">
+        {slide.roundNumber !== undefined && (
+          <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>
+            Kolo {slide.roundNumber}
+          </span>
         )}
       </div>
     </div>
@@ -353,11 +361,11 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Horní lišta — číslo otázky v kole ── */}
-      <div className="flex items-center justify-center pt-7 pb-1 shrink-0 min-h-[52px]">
-        {questionInRound && (
-          <span className="text-2xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
-            {questionInRound}{totalInRound ? `\u00a0/\u00a0${totalInRound}` : ''}
+      {/* ── Číslo otázky — velké, uprostřed ── */}
+      <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
+        {questionInRound !== undefined && (
+          <span className="text-7xl font-black leading-none" style={{ color: textColor }}>
+            {questionInRound}.
           </span>
         )}
       </div>
@@ -475,11 +483,11 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
         )}
       </div>
 
-      {/* ── Spodní lišta — číslo kola ── */}
-      <div className="flex items-center justify-center pb-5 pt-3 shrink-0 min-h-[72px]">
+      {/* ── Spodní footer — malé číslo kola ── */}
+      <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
         {roundNumber !== undefined && (
-          <span className="text-5xl font-black tracking-tight" style={{ color: textColor, opacity: 0.65 }}>
-            {roundNumber}. kolo
+          <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>
+            Kolo {roundNumber}
           </span>
         )}
       </div>
@@ -724,11 +732,17 @@ export default function PlayPage() {
         <div className="flex items-center px-3 py-4 shrink-0 gap-3"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 100%)', backdropFilter: 'blur(8px)' }}>
 
-          {/* Restart — modrá, krajní levá */}
-          <button onClick={goToStart} title="Začít znovu"
-            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all shrink-0">
-            <RotateCcw size={22} className="text-white" />
-          </button>
+          {/* Levá skupina — Restart + Divák */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={goToStart} title="Začít znovu"
+              className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all">
+              <RotateCcw size={22} className="text-white" />
+            </button>
+            <button onClick={() => window.open('/start', '_blank')}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-colors text-sm font-semibold">
+              <Eye size={14} /> Divák
+            </button>
+          </div>
 
           {/* Prostřední blok */}
           <div className="flex items-center justify-center flex-1 gap-10">
@@ -743,12 +757,6 @@ export default function PlayPage() {
             <button onClick={handleForward} disabled={!canGoForward}
               className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
               {centerLabel}
-            </button>
-
-            {/* Divák — vedle modrého tlačítka */}
-            <button onClick={() => window.open('/start', '_blank')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-colors text-sm font-semibold">
-              <Eye size={14} /> Divák
             </button>
 
             {/* Přeskočit — zelená */}
