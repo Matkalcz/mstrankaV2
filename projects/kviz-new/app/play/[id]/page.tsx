@@ -30,11 +30,36 @@ interface Slide {
   showAnswer?: boolean
 }
 
+interface TemplateConfig {
+  textColor?: string
+  accentColor?: string
+  correctColor?: string
+  fontFamily?: string
+  questionTypes?: Record<string, { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
+  separator?: { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }
+  pages?: Array<{ id: string; bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
+}
+
 interface QuizData {
   id: string
   name: string
   sequence: any[]
   questions: QuestionData[]
+  template_id?: string
+}
+
+function bgFromConfig(cfg: TemplateConfig | null, qType?: string, slideType?: string): React.CSSProperties {
+  if (!cfg) return {}
+  let bg: any = null
+  if (slideType === 'separator' && cfg.separator) bg = cfg.separator
+  else if (qType && cfg.questionTypes?.[qType]) bg = cfg.questionTypes[qType]
+  if (!bg) return {}
+  if (bg.bgType === 'gradient' && bg.bg1 && bg.bg2)
+    return { background: `linear-gradient(135deg, ${bg.bg1}, ${bg.bg2})` }
+  if (bg.bgType === 'image' && bg.bgImage)
+    return { background: `url(${bg.bgImage}) center/cover` }
+  if (bg.bg1) return { backgroundColor: bg.bg1 }
+  return {}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -225,6 +250,7 @@ export default function PlayPage() {
   const [phase, setPhase] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showInfo, setShowInfo] = useState(true)
+  const [tmpl, setTmpl] = useState<TemplateConfig | null>(null)
 
   useEffect(() => {
     fetch(`/api/quizzes/${quizId}`)
@@ -232,6 +258,12 @@ export default function PlayPage() {
       .then((data: QuizData) => {
         setQuiz(data)
         setSlides(buildSlides(data))
+        if (data.template_id) {
+          fetch(`/api/templates/${data.template_id}`)
+            .then(r => r.json())
+            .then(t => { if (t.config) setTmpl(t.config) })
+            .catch(() => {})
+        }
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -313,8 +345,19 @@ export default function PlayPage() {
     ? `${slide.question?.type?.toUpperCase()}${slide.showAnswer ? ' (odpověď)' : ''}`
     : slide.type.toUpperCase()
 
+  const tmplStyle: React.CSSProperties = tmpl ? {
+    fontFamily: tmpl.fontFamily || undefined,
+    color: tmpl.textColor || undefined,
+  } : {}
+
+  const slideStyle: React.CSSProperties = slide.type === 'question' && slide.question
+    ? bgFromConfig(tmpl, slide.question.type)
+    : slide.type === 'separator'
+    ? bgFromConfig(tmpl, undefined, 'separator')
+    : {}
+
   return (
-    <div className="min-h-screen bg-[#08090f] text-white flex flex-col select-none">
+    <div className="min-h-screen bg-[#08090f] text-white flex flex-col select-none" style={tmplStyle}>
 
       {/* Info bar */}
       {showInfo && (
@@ -345,7 +388,7 @@ export default function PlayPage() {
       )}
 
       {/* Slide content */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden transition-all duration-500" style={slideStyle}>
         {!showInfo && (
           <button onClick={() => setShowInfo(true)}
             className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-black/40 text-gray-600 hover:text-white transition-colors">

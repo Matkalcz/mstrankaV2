@@ -3,28 +3,33 @@
 
 "use client"
 
-import { ReactNode } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, HelpCircle, Tag, PlayCircle,
-  Palette, Settings, Monitor, ChevronRight, Plus
+  Palette, Settings, Play, Plus
 } from "lucide-react"
 
 // ── Nav config ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: "Dashboard",    href: "/admin",            icon: LayoutDashboard, exact: true },
-  { label: "Otázky",       href: "/admin/questions",  icon: HelpCircle },
-  { label: "Tagy",         href: "/admin/categories", icon: Tag },
-  { label: "Kvízy",        href: "/admin/quizzes",    icon: PlayCircle },
-  { label: "Šablony",      href: "/admin/templates",  icon: Palette },
-  { label: "Nastavení",    href: "/admin/settings",   icon: Settings },
-  { label: "Spustit kvíz", href: "/admin/quizzes",    icon: Monitor },
+  { label: "Dashboard",  href: "/admin",            icon: LayoutDashboard, exact: true },
+  { label: "Otázky",     href: "/admin/questions",  icon: HelpCircle },
+  { label: "Tagy",       href: "/admin/categories", icon: Tag },
+  { label: "Kvízy",      href: "/admin/quizzes",    icon: PlayCircle },
+  { label: "Šablony",    href: "/admin/templates",  icon: Palette },
+  { label: "Nastavení",  href: "/admin/settings",   icon: Settings },
 ]
 
-const AVATAR_URL = "/admin-avatar.jpg" // umísti foto do /public/admin-avatar.jpg
+// Gravatar fallback: zobrazí identicon podle emailu pokud není lokální avatar
+const ADMIN_EMAIL = "admin@kviz.michaljanda.com"
+const gravatarUrl = (email: string, size = 88) => {
+  // md5 není dostupný bez knihovny — použijeme UI Avatars jako fallback
+  return `https://ui-avatars.com/api/?name=Admin&size=${size}&background=7c3aed&color=fff&bold=true&rounded=true`
+}
+const AVATAR_URL = "/admin-avatar.jpg"
 
 // ── Sidebar nav item ──────────────────────────────────────────────────────────
 
@@ -54,6 +59,40 @@ function NavItem({ href, label, icon: Icon, active }: {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
+function QuickActions() {
+  const [lastQuizId, setLastQuizId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/quizzes')
+      .then(r => r.json())
+      .then(data => {
+        const quizzes = Array.isArray(data) ? data : []
+        if (quizzes.length > 0) setLastQuizId(quizzes[0].id)
+      })
+      .catch(() => {})
+  }, [])
+
+  return (
+    <div className="px-3 pt-4 pb-3 border-b border-white/[0.07] space-y-1.5">
+      {lastQuizId && (
+        <button
+          onClick={() => window.open(`/play/${lastQuizId}`, '_blank')}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/30 text-[14px] font-bold text-violet-300 hover:text-white transition-colors">
+          <Play size={15} className="text-violet-400" /> Spustit kvíz
+        </button>
+      )}
+      <Link href="/admin/questions/new"
+        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
+        <Plus size={16} className="text-gray-400" /> Nová otázka
+      </Link>
+      <Link href="/admin/quizzes/new"
+        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
+        <Plus size={16} className="text-gray-400" /> Nový kvíz
+      </Link>
+    </div>
+  )
+}
+
 function AdminSidebarInner() {
   const pathname = usePathname()
   const isActive = (href: string, exact?: boolean) =>
@@ -73,29 +112,22 @@ function AdminSidebarInner() {
                 width={44}
                 height={44}
                 className="object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement
+                  img.src = gravatarUrl(ADMIN_EMAIL)
+                }}
               />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0d0f1e]" />
           </div>
           <div>
             <div className="text-[15px] font-bold text-white leading-tight">Kvíz Admin</div>
-            <div className="text-xs text-emerald-400 leading-tight mt-0.5 font-medium">Aktivní</div>
+            <div className="text-xs text-gray-500 leading-tight mt-0.5">kviz.michaljanda.com</div>
           </div>
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="px-3 pt-4 pb-3 border-b border-white/[0.07] space-y-1.5">
-        <Link href="/admin/questions/new"
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
-          <Plus size={16} className="text-gray-400" /> Nová otázka
-        </Link>
-        <Link href="/admin/quizzes/new"
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
-          <Plus size={16} className="text-gray-400" /> Nový kvíz
-        </Link>
-      </div>
+      <QuickActions />
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">

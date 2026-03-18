@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Volume2, Video } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface QuestionData {
   id: string
@@ -236,20 +237,37 @@ export default function WatchPage() {
   )
 
   if (!quiz) return (
-    <div className="min-h-screen bg-[#08090f] flex items-center justify-center text-white text-2xl">
-      Kvíz nenalezen
+    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-6 text-white">
+      <div className="text-7xl font-black text-gray-800">404</div>
+      <h1 className="text-2xl font-bold text-gray-300">Kvíz nenalezen</h1>
+      <p className="text-gray-600">Tento kvíz neexistuje nebo byl odstraněn.</p>
     </div>
   )
 
-  if (waiting || slides.length === 0) return (
-    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white">
-      <h1 className="text-5xl font-black">{quiz.name}</h1>
-      <div className="flex items-center gap-3 text-gray-400 text-xl">
-        <div className="w-3 h-3 bg-violet-500 rounded-full animate-ping" />
-        Čeká na spuštění moderátorem…
+  if (waiting || slides.length === 0) {
+    const watchUrl = typeof window !== 'undefined' ? window.location.href : `https://kviz.michaljanda.com/watch/${quizId}`
+    return (
+      <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-10 text-white px-8">
+        <h1 className="text-5xl font-black text-center">{quiz.name}</h1>
+
+        {/* QR kód */}
+        <div className="flex flex-col items-center gap-5">
+          <div className="bg-white p-4 rounded-2xl shadow-2xl">
+            <QRCodeSVG value={watchUrl} size={260} level="M" />
+          </div>
+          <p className="text-gray-400 text-sm text-center max-w-xs">
+            Naskenuj QR kód a sleduj kvíz na svém telefonu
+          </p>
+          <p className="text-gray-600 text-xs font-mono">{watchUrl}</p>
+        </div>
+
+        <div className="flex items-center gap-3 text-gray-500 text-lg">
+          <div className="w-2.5 h-2.5 bg-violet-500 rounded-full animate-ping" />
+          Čeká na spuštění moderátorem…
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const slide = slides[Math.min(slideIndex, slides.length - 1)]
 
