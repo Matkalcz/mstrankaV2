@@ -106,7 +106,7 @@ function NewQuizModal({ templates, onClose, onCreated }: {
         status: 'draft',
         template_id: selectedTemplate?.id || null,
       }
-      if (sequence.length > 0) payload.sequence = JSON.stringify(sequence)
+      if (sequence.length > 0) payload.sequence = sequence  // DB stringifies itself
       const res = await fetch('/api/quizzes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -85,15 +85,21 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
 }
 
 function buildSlides(quiz: QuizData): Slide[] {
-  if (!quiz.sequence || quiz.sequence.length === 0) {
-    return quiz.questions.map(q => ({ type: 'question' as SlideType, question: q }))
+  // Guard against bad/error API responses
+  if (!quiz || typeof quiz !== 'object' || ('error' in quiz)) return []
+  const questions = Array.isArray(quiz.questions) ? quiz.questions : []
+  const sequence = Array.isArray(quiz.sequence) ? quiz.sequence : []
+
+  if (sequence.length === 0) {
+    return questions.map(q => ({ type: 'question' as SlideType, question: q }))
   }
-  const hasSeparator = quiz.sequence.some(item => item.type === 'separator')
-  const qMap = new Map(quiz.questions.map(q => [q.id, q]))
+  const hasSeparator = sequence.some(item => item.type === 'separator')
+  const qMap = new Map(questions.map(q => [q.id, q]))
   const slides: Slide[] = []
 
-  for (const item of quiz.sequence) {
+  for (const item of sequence) {
     if (item.type === 'question') {
+      if (!item.questionId) continue // prázdný slot ze skeletonu
       const q = qMap.get(item.questionId)
       if (q) slides.push({ type: 'question', question: q, noAnswerPhase: hasSeparator })
     } else if (item.type === 'separator') {
@@ -405,11 +411,14 @@ export default function WatchPage() {
   useEffect(() => {
     fetch(`/api/quizzes/${quizId}`)
       .then(r => r.json())
-      .then((data: QuizData) => {
-        setQuiz(data)
-        setSlides(buildSlides(data))
-        if (data.template_id) {
-          fetch(`/api/templates/${data.template_id}`)
+      .then((data: any) => {
+        if (!data || data.error) { setLoading(false); return }
+        const quizData = data as QuizData
+        setQuiz(quizData)
+        const built = buildSlides(quizData)
+        setSlides(built)
+        if (quizData.template_id) {
+          fetch(`/api/templates/${quizData.template_id}`)
             .then(r => r.json())
             .then(t => { if (t.config) setTmpl(t.config) })
             .catch(() => {})

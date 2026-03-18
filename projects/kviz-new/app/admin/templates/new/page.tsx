@@ -35,7 +35,8 @@ interface SkeletonBlock {
   title?: string
   subtitle?: string
   roundNumber?: number
-  count?: number        // for question_block: number of empty question slots
+  count?: number         // for question_block: number of empty question slots
+  questionType?: string  // for question_block: which question type
   templatePageId?: string
 }
 
@@ -203,16 +204,19 @@ function SectionBlock({ title, color, preview, open, onToggle, children }: {
 
 // ─── Skeleton builder ──────────────────────────────────────────────────────────
 
-function SkeletonBuilder({ value, onChange }: {
+function SkeletonBuilder({ value, onChange, cfg }: {
   value: SkeletonBlock[]
   onChange: (v: SkeletonBlock[]) => void
+  cfg: TemplateConfig
 }) {
-  const inputCls = "rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+  const cls = "rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500 [color-scheme:dark]"
+
   const add = (type: SkeletonBlock['type']) => {
     const id = uid()
     const base: SkeletonBlock = { id, type }
     if (type === 'round_start') { base.roundNumber = value.filter(b => b.type === 'round_start').length + 1; base.title = '' }
-    if (type === 'question_block') base.count = 5
+    if (type === 'question_block') { base.count = 5; base.questionType = 'simple' }
+    if (type === 'page' && cfg.pages.length > 0) base.templatePageId = cfg.pages[0].id
     onChange([...value, base])
   }
   const remove = (id: string) => onChange(value.filter(b => b.id !== id))
@@ -234,10 +238,13 @@ function SkeletonBuilder({ value, onChange }: {
     page:           { label: 'Stránka',      color: '#6b7280' },
   }
 
+  // Typy otázek dostupné v šabloně
+  const qtypes = Object.entries(cfg.questionTypes || {})
+
   return (
     <div className="space-y-2">
       <p className="text-xs text-gray-500 leading-relaxed">
-        Definuj strukturu kvízu — při vytváření nového kvízu z šablony se automaticky vygeneruje tato kostra. Otázky v blocích jsou prázdné — moderátor je vyplní v sestavovači.
+        Definuj strukturu kvízu — při vytváření nového kvízu z šablony se automaticky vygeneruje tato kostra se všemi komponentami. Otázky v blocích jsou prázdné sloty — moderátor je vyplní v sestavovači.
       </p>
       {value.length === 0 && (
         <div className="text-center py-8 text-gray-600 text-sm border border-dashed border-white/[0.08] rounded-xl">
@@ -248,64 +255,97 @@ function SkeletonBuilder({ value, onChange }: {
         const meta = BLOCK_META[block.type]
         return (
           <div key={block.id} className="flex items-start gap-2 bg-white/[0.03] border border-white/[0.07] rounded-xl p-3">
+            {/* Přesun */}
             <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
               <button onClick={() => move(idx, -1)} disabled={idx === 0}
-                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors">
-                ▲
-              </button>
+                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors text-[10px] leading-none">▲</button>
               <button onClick={() => move(idx, 1)} disabled={idx === value.length - 1}
-                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors">
-                ▼
-              </button>
+                className="p-0.5 rounded text-gray-600 hover:text-gray-300 disabled:opacity-20 transition-colors text-[10px] leading-none">▼</button>
             </div>
-            <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ backgroundColor: meta.color }} />
+            <div className="w-2 h-2 rounded-full mt-2.5 shrink-0" style={{ backgroundColor: meta.color }} />
             <div className="flex-1 space-y-2 min-w-0">
-              <span className="text-sm font-semibold text-gray-200">{meta.label}</span>
+              <span className="text-[13px] font-semibold text-gray-200">{meta.label}</span>
+
               {block.type === 'round_start' && (
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" min={1} value={block.roundNumber || 1}
                     onChange={e => update(block.id, { roundNumber: parseInt(e.target.value) || 1 })}
-                    placeholder="Číslo kola"
-                    className={inputCls + ' [color-scheme:dark]'} />
+                    placeholder="Číslo kola" className={cls} />
                   <input value={block.title || ''}
                     onChange={e => update(block.id, { title: e.target.value })}
-                    placeholder="Název kola (volitelné)"
-                    className={inputCls} />
+                    placeholder="Název kola (volitelné)" className={cls} />
                 </div>
               )}
+
               {block.type === 'question_block' && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <input type="number" min={1} max={50} value={block.count || 5}
                     onChange={e => update(block.id, { count: parseInt(e.target.value) || 1 })}
-                    className={inputCls + ' w-20 [color-scheme:dark]'} />
-                  <span className="text-xs text-gray-500">prázdných otázek</span>
+                    className={cls + ' w-20'} />
+                  <span className="text-xs text-gray-500 shrink-0">otázek typu</span>
+                  {qtypes.length > 0 ? (
+                    <select value={block.questionType || 'simple'}
+                      onChange={e => update(block.id, { questionType: e.target.value })}
+                      className={cls + ' flex-1 min-w-[120px]'}>
+                      {qtypes.map(([key, qt]) => (
+                        <option key={key} value={key}>{qt.name || key}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-xs text-gray-600">(definuj typy otázek výše)</span>
+                  )}
                 </div>
               )}
+
               {block.type === 'separator' && (
                 <input value={block.title || ''}
                   onChange={e => update(block.id, { title: e.target.value })}
                   placeholder="Název oddělovače (volitelné)"
-                  className={inputCls + ' w-full'} />
+                  className={cls + ' w-full'} />
+              )}
+
+              {block.type === 'page' && (
+                cfg.pages.length > 0 ? (
+                  <select value={block.templatePageId || ''}
+                    onChange={e => update(block.id, { templatePageId: e.target.value })}
+                    className={cls + ' w-full'}>
+                    {cfg.pages.map(p => (
+                      <option key={p.id} value={p.id}>{p.name || 'Bez názvu'}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-gray-600">(nejprve přidej stránky výše)</span>
+                )
+              )}
+
+              {block.type === 'qr_page' && (
+                <span className="text-xs text-gray-500">QR kód s veřejnou adresou kvízu</span>
               )}
             </div>
             <button onClick={() => remove(block.id)}
-              className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
-              <Trash2 size={14} />
+              className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 mt-0.5">
+              <Trash2 size={13} />
             </button>
           </div>
         )
       })}
-      <div className="flex flex-wrap gap-2 pt-1">
+
+      {/* Tlačítka přidání */}
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-white/[0.05]">
+        <span className="text-xs text-gray-600 w-full mb-0.5">Přidat komponentu:</span>
         {([
-          ['round_start', 'Start kola'],
-          ['question_block', 'Blok otázek'],
-          ['separator', 'Oddělovač'],
-          ['qr_page', 'QR stránka'],
-          ['page', 'Stránka'],
-        ] as [SkeletonBlock['type'], string][]).map(([type, label]) => (
+          ['round_start', 'Start kola', '#7c3aed'],
+          ['question_block', 'Blok otázek', '#3b82f6'],
+          ['separator', 'Oddělovač', '#f59e0b'],
+          ['qr_page', 'QR stránka', '#06b6d4'],
+          ['page', 'Stránka', '#6b7280'],
+        ] as [SkeletonBlock['type'], string, string][]).map(([type, label, color]) => (
           <button key={type} onClick={() => add(type)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white bg-white/[0.04] border border-white/[0.08] hover:border-white/20 transition-colors">
-            <Plus size={12} />
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:text-white"
+            style={{ color, borderColor: color + '44', backgroundColor: color + '11' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = color + '22')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = color + '11')}>
+            <Plus size={11} />
             {label}
           </button>
         ))}
@@ -737,7 +777,7 @@ function TemplateFormInner() {
                 ? <span className="text-xs text-emerald-400 mr-1">{cfg.skeleton.length} bloků</span>
                 : <span className="text-xs text-gray-600 mr-1">prázdná</span>
             }>
-            <SkeletonBuilder value={cfg.skeleton || []} onChange={setSkeleton} />
+            <SkeletonBuilder value={cfg.skeleton || []} onChange={setSkeleton} cfg={cfg} />
           </SectionBlock>
 
         </div>
