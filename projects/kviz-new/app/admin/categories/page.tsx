@@ -177,19 +177,18 @@ export default function TagsAdminPage() {
                           onCancel={() => setEditingId(null)} saving={savingId === tag.id} />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.03] transition-colors">
+                      <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.03] transition-colors">
                         <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0"
                           style={{ backgroundColor: tag.color || '#7c3aed' }}>
                           {tag.icon || tag.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-white text-sm">{tag.name}</span>
-                            <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                            <span className="text-[15px] font-medium text-white">{tag.name}</span>
+                            <span className="inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold text-white"
                               style={{ backgroundColor: tag.color || '#7c3aed' }}>{tag.name}</span>
                           </div>
-                          {tag.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{tag.description}</p>}
-                          <p className="text-xs text-gray-600 font-mono mt-0.5">{tag.color}</p>
+                          {tag.description && <p className="text-[13px] text-gray-500 mt-0.5 truncate">{tag.description}</p>}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => { setEditingId(tag.id); setCreating(false) }}

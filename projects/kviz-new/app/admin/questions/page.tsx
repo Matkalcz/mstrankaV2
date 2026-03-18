@@ -23,9 +23,9 @@ function formatDate(s: string) {
 }
 
 const TYPE_META: Record<QuestionType, { label: string; bg: string; text: string }> = {
-  simple: { label: "Otázka", bg: "bg-blue-500/20",   text: "text-blue-300" },
-  abcdef: { label: "AB otázka",        bg: "bg-violet-500/20", text: "text-violet-300" },
-  bonus:  { label: "Bonusová",      bg: "bg-amber-500/20",  text: "text-amber-300" },
+  simple: { label: "Prostá",     bg: "bg-blue-500/20",   text: "text-blue-300" },
+  abcdef: { label: "ABCDEF",     bg: "bg-violet-500/20", text: "text-violet-300" },
+  bonus:  { label: "Bonus",      bg: "bg-amber-500/20",  text: "text-amber-300" },
   audio:  { label: "Audio",      bg: "bg-cyan-500/20",   text: "text-cyan-300" },
   video:  { label: "Video",      bg: "bg-pink-500/20",   text: "text-pink-300" },
   image:  { label: "Obrázková",  bg: "bg-rose-500/20",   text: "text-rose-300" },
@@ -162,13 +162,12 @@ export default function QuestionsPage() {
                   const dm = DIFF_META[q.difficulty]
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-5 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
                       <div className="pr-4 min-w-0">
                         <Link href={`/admin/questions/new?id=${q.id}`}
-                          className="text-[15px] text-gray-200 hover:text-violet-300 leading-snug line-clamp-2 block transition-colors">
+                          className="text-[15px] font-medium text-gray-100 hover:text-violet-300 leading-snug line-clamp-2 block transition-colors">
                           {q.text}
                         </Link>
-                        <p className="text-xs text-gray-600 mt-1 font-mono">{q.id.substring(0, 8)}…</p>
                       </div>
                       <div>
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-[13px] font-semibold ${tm.bg} ${tm.text}`}>
@@ -176,19 +175,19 @@ export default function QuestionsPage() {
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {q.tags.length === 0 ? <span className="text-gray-600 text-sm">—</span>
+                        {q.tags.length === 0 ? <span className="text-[13px] text-gray-600">—</span>
                           : q.tags.slice(0, 3).map(t => (
                             <span key={t.id}
-                              className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.07] text-gray-300"
+                              className="inline-flex px-2 py-0.5 rounded-full text-[12px] font-medium bg-white/[0.07] text-gray-300"
                               style={t.color ? { backgroundColor: t.color + "28", color: t.color } : {}}>
                               {t.name}
                             </span>
                           ))}
-                        {q.tags.length > 3 && <span className="text-xs text-gray-600">+{q.tags.length - 3}</span>}
+                        {q.tags.length > 3 && <span className="text-[12px] text-gray-600">+{q.tags.length - 3}</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dm.dot}`} />
-                        <span className="text-[13px] text-gray-400 font-medium">{dm.label}</span>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${dm.dot}`} />
+                        <span className="text-[13px] text-gray-400">{dm.label}</span>
                       </div>
                       <div className="text-[13px] text-gray-500">{q.createdAt}</div>
                       <div className="flex items-center justify-end gap-1">

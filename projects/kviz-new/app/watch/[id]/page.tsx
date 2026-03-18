@@ -443,7 +443,7 @@ export default function WatchPage() {
     </div>
   )
 
-  if (!active || slides.length === 0) return (
+  if (slides.length === 0) return (
     <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white">
       <div className="text-center space-y-3">
         <h1 className="text-5xl font-black tracking-tight">Vítejte na hospodském kvízu</h1>

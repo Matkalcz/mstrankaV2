@@ -132,7 +132,7 @@ export default function TemplatesPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <a href={`/admin/templates/new?id=${t.id}`}
-                        className="font-medium text-gray-100 text-[16px] truncate block hover:text-violet-300 transition-colors">
+                        className="text-[15px] font-medium text-gray-100 truncate block hover:text-violet-300 transition-colors">
                         {t.name}
                       </a>
                       <div className="flex items-center gap-2 mt-1.5">

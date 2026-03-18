@@ -144,7 +144,7 @@ export default function QuizzesPage() {
                   const sm = STATUS_META[q.status] ?? STATUS_META.draft
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] items-center px-6 py-5 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
                       {/* Name + description */}
                       <div className="pr-4 min-w-0">
                         <Link href={`/admin/quizzes/${q.id}`}
@@ -163,9 +163,9 @@ export default function QuizzesPage() {
                         </span>
                       </div>
                       {/* Question count */}
-                      <div className="text-[15px] font-semibold text-gray-300">{q.questionCount}</div>
+                      <div className="text-[15px] font-medium text-gray-300">{q.questionCount}</div>
                       {/* Round count */}
-                      <div className="text-[15px] text-gray-400">{q.roundCount || "—"}</div>
+                      <div className="text-[15px] font-medium text-gray-400">{q.roundCount || "—"}</div>
                       {/* Date */}
                       <div className="text-[13px] text-gray-500">{formatDate(q.created_at)}</div>
                       {/* Actions */}
