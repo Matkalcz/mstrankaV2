@@ -4,7 +4,6 @@
 "use client"
 
 import { ReactNode, useState, useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -97,6 +96,7 @@ function AdminSidebarInner() {
   const pathname = usePathname()
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href)
+  const [avatarSrc, setAvatarSrc] = useState(AVATAR_URL)
 
   return (
     <aside className="w-[220px] shrink-0 flex flex-col bg-[#0d0f1e] border-r border-white/[0.07]">
@@ -106,16 +106,14 @@ function AdminSidebarInner() {
         <div className="flex items-center gap-3.5">
           <div className="relative shrink-0">
             <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-violet-500/40">
-              <Image
-                src={AVATAR_URL}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={avatarSrc}
                 alt="Avatar"
                 width={44}
                 height={44}
-                className="object-cover"
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement
-                  img.src = gravatarUrl(ADMIN_EMAIL)
-                }}
+                className="object-cover w-11 h-11"
+                onError={() => setAvatarSrc(gravatarUrl(ADMIN_EMAIL))}
               />
             </div>
           </div>

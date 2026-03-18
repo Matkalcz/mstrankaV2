@@ -124,7 +124,7 @@ export default function QuizzesPage() {
         ) : (
           <DarkCard>
             {/* Column header */}
-            <div className="grid grid-cols-[1fr_100px_90px_80px_110px_100px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
               <span>Název</span>
               <span>Stav</span>
               <span>Otázek</span>
@@ -143,7 +143,7 @@ export default function QuizzesPage() {
                   const sm = STATUS_META[q.status] ?? STATUS_META.draft
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[1fr_100px_90px_80px_110px_100px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
                       {/* Name + description */}
                       <div className="pr-4 min-w-0">
                         <p className="text-sm font-semibold text-gray-200 leading-snug truncate">{q.name}</p>

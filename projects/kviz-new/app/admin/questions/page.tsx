@@ -145,7 +145,7 @@ export default function QuestionsPage() {
           </div>
         ) : (
           <DarkCard>
-            <div className="grid grid-cols-[1fr_130px_170px_110px_110px_80px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
               <span>Otázka</span><span>Typ</span><span>Tagy</span>
               <span>Obtížnost</span><span>Vytvořeno</span><span className="text-right">Akce</span>
             </div>
@@ -161,7 +161,7 @@ export default function QuestionsPage() {
                   const dm = DIFF_META[q.difficulty]
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[1fr_130px_170px_110px_110px_80px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
                       <div className="pr-4 min-w-0">
                         <p className="text-sm text-gray-200 leading-snug line-clamp-2">{q.text}</p>
                         <p className="text-[11px] text-gray-600 mt-0.5 font-mono">{q.id.substring(0, 8)}…</p>

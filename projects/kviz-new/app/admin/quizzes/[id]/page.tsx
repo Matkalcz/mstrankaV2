@@ -90,16 +90,17 @@ function itemsToSequence(items: SlideItem[]): any[] {
   return items.map(({ _key, questionText, questionType, ...rest }) => rest)
 }
 
-// ─── Modal pro výběr otázky ────────────────────────────────────────────────────
+// ─── Modal pro výběr otázek (multi-select) ────────────────────────────────────
 
 function QuestionModal({ questions, onSelect, onClose }: {
   questions: QuestionData[]
-  onSelect: (q: QuestionData) => void
+  onSelect: (qs: QuestionData[]) => void
   onClose: () => void
 }) {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterDiff, setFilterDiff] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const filtered = questions.filter(q => {
     const matchSearch = !search || q.text.toLowerCase().includes(search.toLowerCase())
@@ -108,6 +109,24 @@ function QuestionModal({ questions, onSelect, onClose }: {
     return matchSearch && matchType && matchDiff
   })
 
+  const toggle = (id: string) =>
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+
+  const toggleAll = () => {
+    if (filtered.every(q => selected.has(q.id))) {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(q => s.delete(q.id)); return s })
+    } else {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(q => s.add(q.id)); return s })
+    }
+  }
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selected.has(q.id))
+
+  const handleConfirm = () => {
+    const toAdd = questions.filter(q => selected.has(q.id))
+    if (toAdd.length > 0) onSelect(toAdd)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -115,7 +134,7 @@ function QuestionModal({ questions, onSelect, onClose }: {
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
-          <h2 className="text-lg font-bold text-white">Vybrat otázku</h2>
+          <h2 className="text-lg font-bold text-white">Vybrat otázky</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
 
@@ -141,43 +160,88 @@ function QuestionModal({ questions, onSelect, onClose }: {
           </select>
         </div>
 
+        {/* Select all row */}
+        {filtered.length > 0 && (
+          <div className="px-6 py-2 border-b border-white/[0.04] flex items-center gap-3">
+            <button onClick={toggleAll}
+              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                allFilteredSelected
+                  ? 'bg-violet-600 border-violet-600'
+                  : 'border-white/30 bg-transparent hover:border-violet-400'
+              }`}>
+              {allFilteredSelected && <Check size={10} className="text-white" />}
+            </button>
+            <span className="text-xs text-gray-500">
+              {allFilteredSelected ? 'Odznačit vše' : `Označit vše (${filtered.length})`}
+            </span>
+          </div>
+        )}
+
         {/* List */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
           {filtered.length === 0 ? (
             <p className="px-6 py-8 text-center text-gray-600">Žádná otázka nenalezena</p>
-          ) : filtered.map(q => (
-            <button key={q.id} onClick={() => onSelect(q)}
-              className="w-full text-left px-6 py-4 hover:bg-white/[0.04] transition-colors group">
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">
-                    {TYPE_LABELS[q.type] || q.type}
-                  </span>
-                  <span className={`text-[10px] font-medium ${DIFF_COLORS[q.difficulty || ''] || 'text-gray-500'}`}>
-                    {DIFF_LABELS[q.difficulty || ''] || ''}
-                  </span>
+          ) : filtered.map(q => {
+            const isSelected = selected.has(q.id)
+            return (
+              <button key={q.id} onClick={() => toggle(q.id)}
+                className={`w-full text-left px-6 py-3.5 transition-colors group ${
+                  isSelected ? 'bg-violet-500/10' : 'hover:bg-white/[0.03]'
+                }`}>
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                    isSelected ? 'bg-violet-600 border-violet-600' : 'border-white/25 group-hover:border-violet-400'
+                  }`}>
+                    {isSelected && <Check size={10} className="text-white" />}
+                  </div>
+                  {/* Type + diff badges */}
+                  <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">
+                      {TYPE_LABELS[q.type] || q.type}
+                    </span>
+                    <span className={`text-[10px] font-medium ${DIFF_COLORS[q.difficulty || ''] || 'text-gray-500'}`}>
+                      {DIFF_LABELS[q.difficulty || ''] || ''}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm leading-snug line-clamp-2 transition-colors ${isSelected ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
+                      {q.text}
+                    </p>
+                    {q.tags.length > 0 && (
+                      <div className="flex gap-1 mt-1.5 flex-wrap">
+                        {q.tags.map(t => (
+                          <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ backgroundColor: t.color + '28', color: t.color }}>
+                            {t.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-200 group-hover:text-white leading-snug line-clamp-2">{q.text}</p>
-                  {q.tags.length > 0 && (
-                    <div className="flex gap-1 mt-1.5 flex-wrap">
-                      {q.tags.map(t => (
-                        <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                          style={{ backgroundColor: t.color + '28', color: t.color }}>
-                          {t.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <Check size={16} className="text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
 
-        <div className="px-6 py-3 border-t border-white/[0.06] text-xs text-gray-600">
-          {filtered.length} otázek
+        {/* Footer */}
+        <div className="px-6 py-3 border-t border-white/[0.08] flex items-center justify-between gap-4">
+          <span className="text-xs text-gray-500">
+            {selected.size > 0
+              ? <span className="text-violet-300 font-semibold">{selected.size} vybraných</span>
+              : `${filtered.length} otázek`}
+          </span>
+          <div className="flex gap-2">
+            <button onClick={onClose}
+              className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">
+              Zrušit
+            </button>
+            <button onClick={handleConfirm} disabled={selected.size === 0}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg shadow-violet-500/20">
+              <Plus size={14} /> Přidat {selected.size > 0 ? `(${selected.size})` : ''}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -263,14 +327,14 @@ export default function QuizBuilderPage() {
     setItems(prev => [...prev, newItem])
   }
 
-  const addQuestion = (q: QuestionData) => {
-    setItems(prev => [...prev, {
+  const addQuestions = (qs: QuestionData[]) => {
+    setItems(prev => [...prev, ...qs.map(q => ({
       _key: uid(),
-      type: 'question',
+      type: 'question' as SlideType,
       questionId: q.id,
       questionText: q.text,
       questionType: q.type,
-    }])
+    }))])
     setShowModal(false)
   }
 
@@ -499,7 +563,7 @@ export default function QuizBuilderPage() {
       {showModal && (
         <QuestionModal
           questions={allQuestions}
-          onSelect={addQuestion}
+          onSelect={addQuestions}
           onClose={() => setShowModal(false)}
         />
       )}
