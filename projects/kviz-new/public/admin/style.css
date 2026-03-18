@@ -1,0 +1,18 @@
+/* Ultra minimal CSS - 500 bytes */
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+.sidebar { 
+    position: fixed; left: 0; top: 0; width: 250px; height: 100vh; 
+    background: #1f2937; color: white; padding: 20px; 
+}
+.content { margin-left: 250px; padding: 20px; }
+.nav-item { 
+    display: block; padding: 10px 15px; margin: 5px 0; 
+    color: #d1d5db; text-decoration: none; border-radius: 6px;
+}
+.nav-item:hover { background: #374151; color: white; }
+.nav-item.active { background: #2563eb; color: white; }
+.stat { 
+    border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; 
+    background: white; margin: 10px; 
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }

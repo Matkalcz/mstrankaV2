@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kviz Admin</title>
+    <link rel="stylesheet" href="/admin/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <meta name="description" content="Admin panel pro hospodské kvízy">
+</head>
+<body>
+    <div class="sidebar">
+        <h2 style="margin-top: 0;">KvizAdmin</h2>
+        <a href="/admin" class="nav-item">Dashboard</a>
+        <a href="/admin/quizzes" class="nav-item">Kvízy</a>
+        <a href="/admin/questions" class="nav-item">Otázky</a>
+        <a href="/admin/templates" class="nav-item">Šablony</a>
+        <a href="/admin/users" class="nav-item">Uživatelé</a>
+        <a href="/admin/analytics" class="nav-item">Analytika</a>
+        <a href="/admin/settings" class="nav-item">Nastavení</a>
+        <a href="/admin/help" class="nav-item">Nápověda</a>
+    </div>
+    
+    <div class="content">
+        <h1>Dashboard</h1>
+        <p>Přehled aktivit a statistik kvízového systému</p>
+        
+        <div class="grid">
+            <div class="stat">
+                <h3 style="margin-top: 0;">Celkem kvízů</h3>
+                <div style="font-size: 2em; font-weight: bold;">24</div>
+            </div>
+            <div class="stat">
+                <h3 style="margin-top: 0;">Aktivní kvízy</h3>
+                <div style="font-size: 2em; font-weight: bold;">8</div>
+            </div>
+            <div class="stat">
+                <h3 style="margin-top: 0;">Otázek v DB</h3>
+                <div style="font-size: 2em; font-weight: bold;">156</div>
+            </div>
+            <div class="stat">
+                <h3 style="margin-top: 0;">Šablon</h3>
+                <div style="font-size: 2em; font-weight: bold;">12</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h2>Poslední aktivity</h2>
+            <ul>
+                <li>Vytvořen kvíz #5 - Před 2h</li>
+                <li>Upravena otázka - Před 4h</li>
+                <li>Přidána šablona - Včera</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h2>Rychlé akce</h2>
+            <div class="grid">
+                <button style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                    Vytvořit kvíz
+                </button>
+                <button style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                    Přidat otázku
+                </button>
+                <button style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                    Vytvořit šablonu
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/admin/script.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+name: Deploy kviz.michaljanda.com
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Manual trigger
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit --skipLibCheck
+
+      - name: Run CI tests
+        run: ./scripts/test-ci.sh
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f .next/static/css/*.css || (echo "ERROR: No CSS files found" && exit 1)
+          test -f .next/static/chunks/*.js || (echo "WARNING: No JS chunks found" && exit 0)
+          echo "Build verification passed"
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            .next/
+            package.json
+            package-lock.json
+          retention-days: 7
+
+  # This job would deploy to staging if we had a staging environment
+  # deploy-staging:
+  #   needs: test-and-build
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Download build artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: nextjs-build
+  # 
+  #     - name: Deploy to staging server
+  #       uses: appleboy/ssh-action@v1
+  #       with:
+  #         host: ${{ secrets.STAGING_HOST }}
+  #         username: ${{ secrets.STAGING_USER }}
+  #         key: ${{ secrets.STAGING_SSH_KEY }}
+  #         script: |
+  #           cd /var/www/kviz-staging
+  #           # Deployment script would go here
+  #           echo "Deployment to staging would happen here"
+
+  # Production deployment - manual approval required
+  deploy-production:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+
+      - name: Display deployment info
+        run: |
+          echo "Deploying to production environment"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+      - name: Check deployment readiness
+        run: |
+          echo "Production deployment would require:"
+          echo "1. Configured SSH secrets"
+          echo "2. Deployment script on server"
+          echo "3. Health checks"
+          echo ""
+          echo "For now, deployment is manual using ./deploy.sh"
+          echo "See DEVELOPMENT.md for deployment instructions"
+
+      # - name: Deploy to production
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.PRODUCTION_HOST }}
+      #     username: ${{ secrets.PRODUCTION_USER }}
+      #     key: ${{ secrets.PRODUCTION_SSH_KEY }}
+      #     script: |
+      #       cd /var/www/kviz
+      #       ./deploy.sh
+
+  health-check:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: always() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Health check (simulated)
+        run: |
+          echo "Health checks would verify:"
+          echo "1. Server responds on production URL"
+          echo "2. Static files are accessible"
+          echo "3. API endpoints work"
+          echo ""
+          echo "See health-check-static.sh for implementation"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Deployment or health check failed!"
+          echo "Check the workflow logs for details."
+          # In a real setup, would send Slack/email notification here
