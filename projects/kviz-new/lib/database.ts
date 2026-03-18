@@ -456,19 +456,37 @@ export const templates = {
 
   create: (data: any) => {
     const id = crypto.randomUUID()
+    const config = data.config ? JSON.stringify(data.config) : null
     db.prepare(`
-      INSERT INTO templates (id, name, background_color, text_color, accent_color, font_family)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, data.name, data.background_color, data.text_color, data.accent_color, data.font_family)
+      INSERT INTO templates (id, name, background_color, text_color, accent_color, font_family, config)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.name,
+      data.config?.backgroundColor ?? data.background_color ?? '#1a1c2e',
+      data.config?.textColor ?? data.text_color ?? '#ffffff',
+      data.config?.accentColor ?? data.accent_color ?? '#7c3aed',
+      data.config?.fontFamily ?? data.font_family ?? 'Plus Jakarta Sans',
+      config,
+    )
     return id
   },
 
   update: (id: string, data: any) => {
+    const config = data.config ? JSON.stringify(data.config) : null
     db.prepare(`
       UPDATE templates
-      SET name = ?, background_color = ?, text_color = ?, accent_color = ?, font_family = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, background_color = ?, text_color = ?, accent_color = ?, font_family = ?, config = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(data.name, data.background_color, data.text_color, data.accent_color, data.font_family, id)
+    `).run(
+      data.name,
+      data.config?.backgroundColor ?? data.background_color ?? '#1a1c2e',
+      data.config?.textColor ?? data.text_color ?? '#ffffff',
+      data.config?.accentColor ?? data.accent_color ?? '#7c3aed',
+      data.config?.fontFamily ?? data.font_family ?? 'Plus Jakarta Sans',
+      config,
+      id,
+    )
   },
 
   delete: (id: string) => db.prepare('DELETE FROM templates WHERE id = ?').run(id),
@@ -490,10 +508,23 @@ export const exports = {
 }
 
 // ---------------------------------------------------------------------------
+// Migration 3: add config JSON column to templates
+// ---------------------------------------------------------------------------
+function migrateTemplatesConfig() {
+  const info = db.prepare(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='templates'"
+  ).get() as { sql: string } | undefined
+  if (!info || info.sql.includes('config')) return
+  db.exec('ALTER TABLE templates ADD COLUMN config TEXT')
+  console.log('Migration 3: templates.config column added')
+}
+
+// ---------------------------------------------------------------------------
 // Boot — init + migrate
 // ---------------------------------------------------------------------------
 initDatabase()
 migrateQuestionsSchema()
 migrateToTagsSystem()
+migrateTemplatesConfig()
 
 export default db
