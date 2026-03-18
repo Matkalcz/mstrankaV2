@@ -9,7 +9,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, HelpCircle, Tag, PlayCircle,
-  Palette, Settings, Play, Plus
+  Palette, Settings, Play, Plus, ChevronRight
 } from "lucide-react"
 
 // ── Nav config ────────────────────────────────────────────────────────────────
