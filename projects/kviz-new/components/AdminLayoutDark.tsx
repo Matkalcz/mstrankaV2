@@ -35,7 +35,7 @@ function NavItem({ href, label, icon: Icon, active }: {
     <Link
       href={href}
       className={`
-        relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[14px] font-medium
+        relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium
         transition-all duration-150 group
         ${active
           ? "bg-violet-600/20 text-white before:absolute before:left-0 before:top-2.5 before:bottom-2.5 before:w-[3px] before:rounded-r-full before:bg-violet-400"
@@ -44,7 +44,7 @@ function NavItem({ href, label, icon: Icon, active }: {
       `}
     >
       <Icon
-        size={18}
+        size={20}
         className={active ? "text-violet-400" : "text-gray-500 group-hover:text-gray-300 transition-colors"}
       />
       {label}
@@ -70,7 +70,7 @@ function QuickActions() {
 
   return (
     <div className="px-3 pb-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 px-1 mb-2">Rychlé akce</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 px-1 mb-2">Rychlé akce</p>
       <div className="space-y-1">
         {lastQuizId && (
           <button
@@ -101,7 +101,7 @@ function AdminSidebarInner() {
   const [avatarSrc, setAvatarSrc] = useState(AVATAR_URL)
 
   return (
-    <aside className="w-[240px] shrink-0 flex flex-col bg-[#090b16] border-r border-white/[0.06]"
+    <aside className="w-[260px] shrink-0 flex flex-col bg-[#090b16] border-r border-white/[0.06]"
       style={{ background: 'linear-gradient(180deg, #0a0c18 0%, #0c0e1c 100%)' }}>
 
       {/* Identity */}
@@ -119,8 +119,8 @@ function AdminSidebarInner() {
             />
           </div>
           <div className="min-w-0">
-            <div className="text-[14px] font-bold text-white leading-tight truncate">Kvíz Admin</div>
-            <div className="text-[11px] text-gray-500 leading-tight mt-0.5 truncate">kviz.michaljanda.com</div>
+            <div className="text-[15px] font-bold text-white leading-tight truncate">Kvíz Admin</div>
+            <div className="text-[12px] text-gray-500 leading-tight mt-0.5 truncate">kviz.michaljanda.com</div>
           </div>
         </div>
       </div>
@@ -132,7 +132,7 @@ function AdminSidebarInner() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 pt-4 space-y-0.5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 px-1 mb-2">Navigace</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 px-1 mb-2">Navigace</p>
         {NAV_ITEMS.map(item => (
           <NavItem
             key={item.href + item.label}
@@ -187,8 +187,8 @@ export function AdminPageHeader({
             <ChevronRight size={11} className="text-gray-600" />
             <span className="text-gray-400">{breadcrumb || title}</span>
           </div>
-          <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">{title}</h1>
-          {subtitle && <p className="text-sm text-gray-400 mt-1 leading-snug">{subtitle}</p>}
+          <h1 className="text-[26px] font-bold text-white tracking-tight leading-tight">{title}</h1>
+          {subtitle && <p className="text-[15px] text-gray-400 mt-1 leading-snug">{subtitle}</p>}
         </div>
         {action && <div className="shrink-0 mt-1">{action}</div>}
       </div>

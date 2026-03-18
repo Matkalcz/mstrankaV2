@@ -145,13 +145,13 @@ export default function QuestionsPage() {
           </div>
         ) : (
           <DarkCard>
-            <div className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] px-6 py-3.5 border-b border-white/[0.08] text-xs font-bold text-gray-500 uppercase tracking-wider">
               <span>Otázka</span><span>Typ</span><span>Tagy</span>
               <span>Obtížnost</span><span>Vytvořeno</span><span className="text-right">Akce</span>
             </div>
 
             {filtered.length === 0 ? (
-              <div className="py-16 text-center text-gray-500 text-sm">
+              <div className="py-16 text-center text-gray-500 text-[15px]">
                 {questions.length === 0 ? "Žádné otázky v databázi" : "Žádné otázky nevyhovují filtru"}
               </div>
             ) : (
@@ -161,32 +161,32 @@ export default function QuestionsPage() {
                   const dm = DIFF_META[q.difficulty]
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-5 hover:bg-white/[0.03] transition-colors">
                       <div className="pr-4 min-w-0">
-                        <p className="text-sm text-gray-200 leading-snug line-clamp-2">{q.text}</p>
-                        <p className="text-[11px] text-gray-600 mt-0.5 font-mono">{q.id.substring(0, 8)}…</p>
+                        <p className="text-[15px] text-gray-200 leading-snug line-clamp-2">{q.text}</p>
+                        <p className="text-xs text-gray-600 mt-1 font-mono">{q.id.substring(0, 8)}…</p>
                       </div>
                       <div>
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${tm.bg} ${tm.text}`}>
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[13px] font-semibold ${tm.bg} ${tm.text}`}>
                           {tm.label}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {q.tags.length === 0 ? <span className="text-gray-600 text-xs">—</span>
+                        {q.tags.length === 0 ? <span className="text-gray-600 text-sm">—</span>
                           : q.tags.slice(0, 3).map(t => (
                             <span key={t.id}
-                              className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.07] text-gray-300"
+                              className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.07] text-gray-300"
                               style={t.color ? { backgroundColor: t.color + "28", color: t.color } : {}}>
                               {t.name}
                             </span>
                           ))}
-                        {q.tags.length > 3 && <span className="text-[11px] text-gray-600">+{q.tags.length - 3}</span>}
+                        {q.tags.length > 3 && <span className="text-xs text-gray-600">+{q.tags.length - 3}</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${dm.dot}`} />
-                        <span className="text-xs text-gray-400 font-medium">{dm.label}</span>
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dm.dot}`} />
+                        <span className="text-[13px] text-gray-400 font-medium">{dm.label}</span>
                       </div>
-                      <div className="text-xs text-gray-500">{q.createdAt}</div>
+                      <div className="text-[13px] text-gray-500">{q.createdAt}</div>
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => router.push(`/admin/questions/new?id=${q.id}`)}
                           className="p-2 rounded-lg text-gray-500 hover:bg-violet-500/15 hover:text-violet-300 transition-colors" title="Upravit">
@@ -206,7 +206,7 @@ export default function QuestionsPage() {
             )}
 
             {filtered.length > 0 && (
-              <div className="px-6 py-3 border-t border-white/[0.08] text-xs text-gray-600 font-medium">
+              <div className="px-6 py-3.5 border-t border-white/[0.08] text-[13px] text-gray-600 font-medium">
                 Zobrazeno {filtered.length} z {questions.length} otázek
               </div>
             )}
