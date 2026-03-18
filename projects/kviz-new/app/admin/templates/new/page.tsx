@@ -159,6 +159,9 @@ function BgEditor({ value, onChange, label }: {
     </div>
   )
 }
+function bgStyle(bg: BgConfig): React.CSSProperties {
+  if (bg.bgType === "gradient") return { background: `linear-gradient(135deg, ${bg.bg1}, ${bg.bg2})` }
+  if (bg.bgType === "image" && bg.bgImage) return { background: `url(${bg.bgImage}) center/cover` }
   return { background: bg.bg1 }
 }
 

@@ -17,7 +17,7 @@ export async function GET(
 ) {
   try {
     const { filename } = await params
-    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\')) {
+    if (!filename || filename.includes('..') || filename.includes('/')) {
       return NextResponse.json({ error: 'Neplatný název souboru' }, { status: 400 })
     }
     const uploadsDir = path.join(process.cwd(), 'data', 'uploads')

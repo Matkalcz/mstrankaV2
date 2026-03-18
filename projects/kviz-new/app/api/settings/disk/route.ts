@@ -88,7 +88,7 @@ export async function DELETE(request: NextRequest) {
 
     if (orphanFiles?.length) {
       for (const filename of orphanFiles) {
-        if (filename.includes('..') || filename.includes('/') || filename.includes('\')) continue
+        if (filename.includes('..') || filename.includes('/')) continue
         const filepath = path.join(uploadsDir, filename)
         if (existsSync(filepath)) try { unlinkSync(filepath); deleted.push(`file:${filename}`) } catch {}
       }
