@@ -638,16 +638,6 @@ export default function QuizBuilderPage() {
               <p className="text-sm text-gray-500">
                 {items.length} slidů · {questionCount} otázek · {roundCount} kol
               </p>
-              <button onClick={() => setShowTemplateModal(true)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                  activeTemplate
-                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-300 hover:bg-violet-500/25'
-                    : 'bg-white/[0.05] border-white/[0.1] text-gray-500 hover:text-gray-300 hover:bg-white/[0.08]'
-                }`}>
-                <LayoutTemplate size={11} />
-                {activeTemplate ? activeTemplate.name : 'Bez šablony'}
-                <ChevronDown size={11} className="opacity-60" />
-              </button>
             </div>
           </div>
           <div className="flex items-center gap-2">
