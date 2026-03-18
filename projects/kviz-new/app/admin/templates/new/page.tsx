@@ -1,124 +1,261 @@
-// app/admin/templates/new/page.tsx
+// app/admin/templates/new/page.tsx — Šablona s per-elementovým pozadím
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Save, Loader2, Palette, Type, ImageIcon } from "lucide-react"
+import {
+  ArrowLeft, Save, Loader2, Palette, Type, Plus, Trash2,
+  HelpCircle, FileText, Minus, ChevronDown, ChevronRight
+} from "lucide-react"
 import Link from "next/link"
+
+// ─── Typy ─────────────────────────────────────────────────────────────────────
+
+type BgType = "solid" | "gradient" | "image"
+
+interface BgConfig {
+  bgType: BgType
+  bg1: string
+  bg2: string
+  bgImage: string
+}
+
+interface QuestionTypeConfig extends BgConfig {
+  name: string  // zobrazuje se napříč systémem
+}
+
+interface PageConfig extends BgConfig {
+  id: string
+  name: string
+}
+
+interface TemplateConfig {
+  description: string
+  textColor: string
+  accentColor: string
+  correctColor: string
+  fontFamily: string
+  questionTypes: Record<string, QuestionTypeConfig>
+  pages: PageConfig[]
+  separator: { name: string } & BgConfig
+}
+
+// ─── Výchozí hodnoty ───────────────────────────────────────────────────────────
+
+const DEFAULT_BG: BgConfig = { bgType: "solid", bg1: "#1a1c2e", bg2: "#2d1b69", bgImage: "" }
+
+const Q_TYPE_DEFAULTS: Record<string, { label: string; defaultName: string; color: string }> = {
+  simple:  { label: "Prostá otázka",  defaultName: "Prostá otázka",  color: "#3b82f6" },
+  ab:      { label: "A/B otázka",     defaultName: "A/B otázka",     color: "#8b5cf6" },
+  abcdef:  { label: "ABCDEF otázka",  defaultName: "ABCDEF otázka",  color: "#6366f1" },
+  bonus:   { label: "Bonus",          defaultName: "Bonusová otázka", color: "#f59e0b" },
+  audio:   { label: "Audio otázka",   defaultName: "Audio otázka",   color: "#ec4899" },
+  video:   { label: "Video otázka",   defaultName: "Video otázka",   color: "#10b981" },
+}
 
 const FONTS = [
   "Plus Jakarta Sans", "Inter", "Roboto", "Open Sans", "Montserrat",
   "Poppins", "Lato", "Nunito", "Raleway", "Merriweather", "DM Sans",
 ]
 
-interface FormState {
-  name: string
-  description: string
-  backgroundType: "solid" | "gradient" | "image"
-  backgroundColor: string
-  backgroundColor2: string
-  backgroundImage: string
-  textColor: string
-  accentColor: string
-  correctColor: string
-  fontFamily: string
+function makeDefaultConfig(): TemplateConfig {
+  return {
+    description: "",
+    textColor: "#ffffff",
+    accentColor: "#7c3aed",
+    correctColor: "#10b981",
+    fontFamily: "Plus Jakarta Sans",
+    questionTypes: Object.fromEntries(
+      Object.entries(Q_TYPE_DEFAULTS).map(([k, v]) => [k, { name: v.defaultName, ...DEFAULT_BG }])
+    ),
+    pages: [{ id: "p1", name: "Uvítací stránka", ...DEFAULT_BG }],
+    separator: { name: "Opakování odpovědí", ...DEFAULT_BG, bg1: "#0a0a1a" },
+  }
 }
 
-const DEFAULTS: FormState = {
-  name: "",
-  description: "",
-  backgroundType: "solid",
-  backgroundColor: "#1a1c2e",
-  backgroundColor2: "#2d1b69",
-  backgroundImage: "",
-  textColor: "#ffffff",
-  accentColor: "#7c3aed",
-  correctColor: "#10b981",
-  fontFamily: "Plus Jakarta Sans",
-}
+function uid() { return Math.random().toString(36).slice(2) }
 
-function ColorRow({ label, name, value, onChange }: {
-  label: string; name: string; value: string; onChange: (v: string) => void
-}) {
-  const inputCls = "flex-1 rounded-lg border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm text-white font-mono focus:outline-none focus:ring-1 focus:ring-violet-500"
+// ─── Shared komponenty ─────────────────────────────────────────────────────────
+
+function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-400 mb-1.5">{label}</label>
       <div className="flex gap-2">
         <input type="color" value={value} onChange={e => onChange(e.target.value)}
-          className="h-9 w-12 rounded-lg cursor-pointer border border-white/10 bg-transparent p-0.5" />
+          className="h-9 w-12 rounded-lg cursor-pointer border border-white/10 bg-transparent p-0.5 shrink-0" />
         <input type="text" value={value} onChange={e => onChange(e.target.value)}
-          className={inputCls} placeholder="#000000" />
+          className="flex-1 rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white font-mono focus:outline-none focus:ring-1 focus:ring-violet-500"
+          placeholder="#000000" />
       </div>
     </div>
   )
 }
 
-function TemplatePreview({ f }: { f: FormState }) {
-  const bg = f.backgroundType === "gradient"
-    ? `linear-gradient(135deg, ${f.backgroundColor}, ${f.backgroundColor2})`
-    : f.backgroundType === "image" && f.backgroundImage
-    ? `url(${f.backgroundImage}) center/cover`
-    : f.backgroundColor
+function BgEditor({ value, onChange, label }: {
+  value: BgConfig
+  onChange: (patch: Partial<BgConfig>) => void
+  label?: string
+}) {
+  const set = (k: keyof BgConfig) => (v: string) => onChange({ [k]: v })
+  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
 
   return (
-    <div className="rounded-xl overflow-hidden border border-white/[0.08] sticky top-24">
-      <div className="px-4 py-3 border-b border-white/[0.08] bg-white/[0.02]">
+    <div className="space-y-3">
+      {label && <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</p>}
+      <div className="grid grid-cols-3 gap-2">
+        {(["solid", "gradient", "image"] as BgType[]).map(t => (
+          <button key={t} type="button" onClick={() => set("bgType")(t)}
+            className={`py-2 rounded-lg text-xs font-semibold border transition-all ${
+              value.bgType === t
+                ? "border-violet-500 bg-violet-500/20 text-violet-300"
+                : "border-white/[0.08] bg-white/[0.03] text-gray-500 hover:border-white/20"
+            }`}>
+            {t === "solid" ? "Jednolité" : t === "gradient" ? "Přechod" : "Obrázek"}
+          </button>
+        ))}
+      </div>
+
+      {value.bgType === "solid" && (
+        <ColorInput label="Barva pozadí" value={value.bg1} onChange={set("bg1")} />
+      )}
+      {value.bgType === "gradient" && (
+        <div className="grid grid-cols-2 gap-3">
+          <ColorInput label="První barva" value={value.bg1} onChange={set("bg1")} />
+          <ColorInput label="Druhá barva" value={value.bg2} onChange={set("bg2")} />
+        </div>
+      )}
+      {value.bgType === "image" && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">URL obrázku</label>
+          <input type="url" value={value.bgImage} onChange={e => set("bgImage")(e.target.value)}
+            className={inputCls} placeholder="https://…/background.jpg" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function bgStyle(bg: BgConfig): React.CSSProperties {
+  if (bg.bgType === "gradient") return { background: `linear-gradient(135deg, ${bg.bg1}, ${bg.bg2})` }
+  if (bg.bgType === "image" && bg.bgImage) return { background: `url(${bg.bgImage}) center/cover` }
+  return { background: bg.bg1 }
+}
+
+// ─── Sekce šablony ─────────────────────────────────────────────────────────────
+
+type Section = { type: "global" } | { type: "qtype"; key: string } | { type: "page"; id: string } | { type: "separator" }
+
+function SectionBlock({ title, color, preview, open, onToggle, children }: {
+  title: string; color?: string; preview?: React.ReactNode
+  open: boolean; onToggle: () => void; children: React.ReactNode
+}) {
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden">
+      <button type="button" onClick={onToggle}
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+        {color && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />}
+        <span className="text-sm font-semibold text-gray-200 flex-1 text-left">{title}</span>
+        {preview}
+        {open ? <ChevronDown size={15} className="text-gray-500 shrink-0" /> : <ChevronRight size={15} className="text-gray-500 shrink-0" />}
+      </button>
+      {open && <div className="px-5 pb-5 pt-1 border-t border-white/[0.06] space-y-4">{children}</div>}
+    </div>
+  )
+}
+
+// ─── Live preview ──────────────────────────────────────────────────────────────
+
+function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
+  const bg: BgConfig = (() => {
+    if (active.type === "qtype") return cfg.questionTypes[active.key] ?? DEFAULT_BG
+    if (active.type === "page") return cfg.pages.find(p => p.id === active.id) ?? DEFAULT_BG
+    if (active.type === "separator") return cfg.separator
+    return cfg.questionTypes["abcdef"] ?? DEFAULT_BG
+  })()
+
+  const name: string = (() => {
+    if (active.type === "qtype") return cfg.questionTypes[active.key]?.name ?? ""
+    if (active.type === "page") return cfg.pages.find(p => p.id === active.id)?.name ?? ""
+    if (active.type === "separator") return cfg.separator.name
+    return "Náhled"
+  })()
+
+  const isSeparator = active.type === "separator"
+  const isPage = active.type === "page"
+
+  return (
+    <div className="sticky top-24 rounded-xl overflow-hidden border border-white/[0.08]">
+      <div className="px-4 py-3 bg-white/[0.02] border-b border-white/[0.08] flex items-center justify-between">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Náhled</span>
+        {name && <span className="text-xs text-gray-400 italic">„{name}"</span>}
       </div>
-      <div
-        className="p-6 min-h-[340px] flex flex-col gap-4"
-        style={{ background: bg, fontFamily: f.fontFamily }}
-      >
-        {/* Question number */}
-        <div className="text-xs font-bold opacity-50" style={{ color: f.accentColor }}>
-          OTÁZKA 5 / 20
-        </div>
 
-        {/* Question text */}
-        <h2 className="text-xl font-bold leading-snug" style={{ color: f.textColor }}>
-          Které pivo vaří pivovar Pilsner Urquell?
-        </h2>
+      <div className="min-h-[300px] flex flex-col" style={{ ...bgStyle(bg), fontFamily: cfg.fontFamily }}>
+        {isSeparator ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+            <div className="w-16 h-0.5 rounded-full" style={{ backgroundColor: cfg.accentColor }} />
+            <span className="text-lg font-bold" style={{ color: cfg.textColor }}>{cfg.separator.name || "Oddělovač"}</span>
+            <div className="w-16 h-0.5 rounded-full" style={{ backgroundColor: cfg.accentColor }} />
+          </div>
+        ) : isPage ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
+            <div className="text-xs font-bold tracking-widest uppercase opacity-50" style={{ color: cfg.accentColor }}>Stránka</div>
+            <h2 className="text-3xl font-black" style={{ color: cfg.textColor }}>
+              {cfg.pages.find(p => p.id === (active as any).id)?.name || "Název stránky"}
+            </h2>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col p-6 gap-4">
+            <div className="text-xs font-bold opacity-50" style={{ color: cfg.accentColor }}>OTÁZKA 3 / 12</div>
+            <h2 className="text-xl font-bold leading-snug flex-1" style={{ color: cfg.textColor }}>
+              Které pivo vaří pivovar Pilsner Urquell?
+            </h2>
+            {(active.type === "global" || (active.type === "qtype" && (active.key === "abcdef" || active.key === "ab"))) && (
+              <div className="grid grid-cols-2 gap-2">
+                {[{ l: "A", t: "Pilsner Urquell", ok: true }, { l: "B", t: "Budweiser", ok: false },
+                  { l: "C", t: "Staropramen", ok: false }, { l: "D", t: "Kozel", ok: false }].map(o => (
+                  <div key={o.l} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+                    style={{
+                      backgroundColor: o.ok ? cfg.correctColor + "33" : cfg.textColor + "12",
+                      border: `1px solid ${o.ok ? cfg.correctColor + "88" : cfg.textColor + "20"}`,
+                      color: o.ok ? cfg.correctColor : cfg.textColor,
+                    }}>
+                    <span className="font-bold" style={{ color: cfg.accentColor }}>{o.l}</span>{o.t}
+                  </div>
+                ))}
+              </div>
+            )}
+            {active.type === "qtype" && active.key === "simple" && (
+              <div className="rounded-xl px-5 py-3 text-lg font-bold text-center"
+                style={{ backgroundColor: cfg.correctColor + "33", color: cfg.correctColor, border: `1px solid ${cfg.correctColor}66` }}>
+                Pilsner Urquell
+              </div>
+            )}
+            {active.type === "qtype" && active.key === "bonus" && (
+              <div className="space-y-2">
+                {["Praha", "Plzeň", "Brno"].map((ans, i) => (
+                  <div key={i} className="rounded-lg px-4 py-2 text-sm font-semibold"
+                    style={{ backgroundColor: cfg.correctColor + "33", color: cfg.correctColor, border: `1px solid ${cfg.correctColor}44` }}>
+                    {i + 1}. {ans}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Options */}
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          {[
-            { l: "A", t: "Pilsner Urquell", correct: true },
-            { l: "B", t: "Budweiser Budvar", correct: false },
-            { l: "C", t: "Staropramen", correct: false },
-            { l: "D", t: "Kozel Černý", correct: false },
-          ].map(opt => (
-            <div key={opt.l}
-              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
-              style={{
-                backgroundColor: opt.correct
-                  ? f.correctColor + "33"
-                  : f.textColor + "12",
-                border: `1px solid ${opt.correct ? f.correctColor + "88" : f.textColor + "20"}`,
-                color: opt.correct ? f.correctColor : f.textColor,
-              }}>
-              <span className="font-bold shrink-0" style={{ color: f.accentColor }}>{opt.l}</span>
-              {opt.t}
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom bar */}
-        <div className="mt-auto pt-4 border-t flex items-center justify-between text-xs"
-          style={{ borderColor: f.textColor + "18", color: f.textColor + "60" }}>
+        <div className="px-6 py-3 flex items-center justify-between text-xs border-t"
+          style={{ borderColor: cfg.textColor + "18", color: cfg.textColor + "50" }}>
           <span>Kolo 1</span>
-          <span style={{ fontFamily: "monospace" }}>{f.fontFamily}</span>
+          <span style={{ fontFamily: "monospace" }}>{cfg.fontFamily}</span>
         </div>
-      </div>
-
-      {/* Separator slide preview */}
-      <div className="px-4 py-3 border-t border-white/[0.08] bg-white/[0.02] text-center"
-        style={{ background: `linear-gradient(90deg, ${f.accentColor}22, transparent)` }}>
-        <span className="text-xs text-gray-500">— Oddělovač kola —</span>
       </div>
     </div>
   )
 }
+
+// ─── Formulář ─────────────────────────────────────────────────────────────────
 
 function TemplateFormInner() {
   const router = useRouter()
@@ -126,55 +263,66 @@ function TemplateFormInner() {
   const editId = searchParams.get("id")
   const isEdit = !!editId
 
-  const [form, setForm] = useState<FormState>(DEFAULTS)
+  const [name, setName] = useState("")
+  const [cfg, setCfg] = useState<TemplateConfig>(makeDefaultConfig)
   const [saving, setSaving] = useState(false)
-  const [loadingEdit, setLoadingEdit] = useState(isEdit)
+  const [loading, setLoading] = useState(isEdit)
+  const [openSection, setOpenSection] = useState<string>("global")
+  const [activePreview, setActivePreview] = useState<Section>({ type: "global" })
 
-  const set = (key: keyof FormState) => (val: string) =>
-    setForm(prev => ({ ...prev, [key]: val }))
+  const set = (patch: Partial<TemplateConfig>) => setCfg(prev => ({ ...prev, ...patch }))
+  const setQType = (key: string, patch: Partial<QuestionTypeConfig>) =>
+    setCfg(prev => ({ ...prev, questionTypes: { ...prev.questionTypes, [key]: { ...prev.questionTypes[key], ...patch } } }))
+  const setSeparator = (patch: Partial<typeof cfg.separator>) =>
+    setCfg(prev => ({ ...prev, separator: { ...prev.separator, ...patch } }))
 
+  const addPage = () => {
+    const id = uid()
+    setCfg(prev => ({ ...prev, pages: [...prev.pages, { id, name: "Nová stránka", ...DEFAULT_BG }] }))
+    setOpenSection(`page_${id}`)
+    setActivePreview({ type: "page", id })
+  }
+  const removePage = (id: string) => setCfg(prev => ({ ...prev, pages: prev.pages.filter(p => p.id !== id) }))
+  const updatePage = (id: string, patch: Partial<PageConfig>) =>
+    setCfg(prev => ({ ...prev, pages: prev.pages.map(p => p.id === id ? { ...p, ...patch } : p) }))
+
+  // Load for edit
   useEffect(() => {
     if (!editId) return
     fetch(`/api/templates/${editId}`)
       .then(r => r.json())
       .then(data => {
-        const cfg = data.config ?? {}
-        setForm({
-          name: data.name ?? "",
-          description: cfg.description ?? "",
-          backgroundType: cfg.backgroundType ?? "solid",
-          backgroundColor: cfg.backgroundColor ?? data.background_color ?? DEFAULTS.backgroundColor,
-          backgroundColor2: cfg.backgroundColor2 ?? DEFAULTS.backgroundColor2,
-          backgroundImage: cfg.backgroundImage ?? "",
-          textColor: cfg.textColor ?? data.text_color ?? DEFAULTS.textColor,
-          accentColor: cfg.accentColor ?? data.accent_color ?? DEFAULTS.accentColor,
-          correctColor: cfg.correctColor ?? DEFAULTS.correctColor,
-          fontFamily: cfg.fontFamily ?? data.font_family ?? DEFAULTS.fontFamily,
-        })
+        setName(data.name ?? "")
+        if (data.config) {
+          const c = data.config
+          setCfg(prev => ({
+            ...prev,
+            description: c.description ?? "",
+            textColor: c.textColor ?? prev.textColor,
+            accentColor: c.accentColor ?? prev.accentColor,
+            correctColor: c.correctColor ?? prev.correctColor,
+            fontFamily: c.fontFamily ?? prev.fontFamily,
+            questionTypes: c.questionTypes ?? prev.questionTypes,
+            pages: c.pages ?? prev.pages,
+            separator: c.separator ?? prev.separator,
+          }))
+        }
       })
-      .catch(() => alert("Chyba při načítání šablony"))
-      .finally(() => setLoadingEdit(false))
+      .catch(() => alert("Chyba při načítání"))
+      .finally(() => setLoading(false))
   }, [editId])
 
   const handleSave = async () => {
-    if (!form.name.trim()) { alert("Název je povinný"); return }
+    if (!name.trim()) { alert("Název je povinný"); return }
     setSaving(true)
-    const payload = {
-      name: form.name.trim(),
-      config: { ...form },
-    }
     try {
       const url = isEdit ? `/api/templates/${editId}` : "/api/templates"
-      const method = isEdit ? "PUT" : "POST"
       const res = await fetch(url, {
-        method,
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name: name.trim(), config: cfg }),
       })
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}))
-        throw new Error((b as any).error || `HTTP ${res.status}`)
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       router.push("/admin/templates")
     } catch (err: any) {
       alert(`Chyba: ${err.message}`)
@@ -183,17 +331,18 @@ function TemplateFormInner() {
     }
   }
 
-  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-  const sectionCls = "bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 space-y-4"
-  const labelCls = "block text-xs font-semibold text-gray-400 mb-1.5"
-
-  if (loadingEdit) {
-    return (
-      <div className="flex justify-center py-32">
-        <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-      </div>
-    )
+  const toggle = (key: string, section: Section) => {
+    setOpenSection(prev => prev === key ? "" : key)
+    setActivePreview(section)
   }
+
+  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+
+  if (loading) return (
+    <div className="flex justify-center py-32">
+      <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+    </div>
+  )
 
   return (
     <div>
@@ -205,113 +354,166 @@ function TemplateFormInner() {
               className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-2 transition-colors">
               <ArrowLeft size={12} /> Zpět na šablony
             </Link>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              {isEdit ? "Upravit šablonu" : "Nová šablona"}
-            </h1>
+            <h1 className="text-2xl font-bold text-white">{isEdit ? "Upravit šablonu" : "Nová šablona"}</h1>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving || !form.name.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 disabled:opacity-50 transition-all active:scale-95"
-          >
+          <button onClick={handleSave} disabled={saving || !name.trim()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 disabled:opacity-50 transition-all active:scale-95">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {isEdit ? "Uložit změny" : "Vytvořit šablonu"}
           </button>
         </div>
       </div>
 
-      {/* Two-panel layout */}
-      <div className="px-8 py-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-        {/* Left — form */}
-        <div className="space-y-4">
-          {/* Basic info */}
-          <div className={sectionCls}>
-            <div className="flex items-center gap-2 mb-1">
-              <Palette size={16} className="text-violet-400" />
-              <span className="text-sm font-bold text-gray-300">Základní informace</span>
+      {/* Two-panel */}
+      <div className="px-8 py-6 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+
+        {/* Left — sections */}
+        <div className="space-y-3">
+
+          {/* Název šablony */}
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Palette size={15} className="text-violet-400" />
+              <span className="text-sm font-bold text-gray-300">Název šablony</span>
             </div>
-            <div>
-              <label className={labelCls}>Název šablony <span className="text-red-400">*</span></label>
-              <input value={form.name} onChange={e => set("name")(e.target.value)}
-                className={inputCls} placeholder="Např. Tmavý kvíz…" autoFocus />
-            </div>
-            <div>
-              <label className={labelCls}>Popis</label>
-              <input value={form.description} onChange={e => set("description")(e.target.value)}
-                className={inputCls} placeholder="Volitelný popis…" />
-            </div>
+            <input value={name} onChange={e => setName(e.target.value)}
+              className={inputCls} placeholder="Např. Tmavý kvíz…" autoFocus />
+            <input value={cfg.description} onChange={e => set({ description: e.target.value })}
+              className={inputCls} placeholder="Popis (volitelné)…" />
           </div>
 
-          {/* Background */}
-          <div className={sectionCls}>
-            <div className="flex items-center gap-2 mb-1">
-              <ImageIcon size={16} className="text-violet-400" />
-              <span className="text-sm font-bold text-gray-300">Pozadí</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(["solid", "gradient", "image"] as const).map(type => (
-                <button key={type} type="button"
-                  onClick={() => set("backgroundType")(type)}
-                  className={`py-2.5 rounded-lg text-xs font-semibold border transition-all ${
-                    form.backgroundType === type
-                      ? "border-violet-500 bg-violet-500/20 text-violet-300"
-                      : "border-white/[0.08] bg-white/[0.03] text-gray-400 hover:border-white/20"
-                  }`}>
-                  {type === "solid" ? "Jednolité" : type === "gradient" ? "Přechod" : "Obrázek"}
-                </button>
-              ))}
-            </div>
-
-            {form.backgroundType === "solid" && (
-              <ColorRow label="Barva pozadí" name="backgroundColor"
-                value={form.backgroundColor} onChange={set("backgroundColor")} />
-            )}
-            {form.backgroundType === "gradient" && (
-              <>
-                <ColorRow label="První barva" name="backgroundColor"
-                  value={form.backgroundColor} onChange={set("backgroundColor")} />
-                <ColorRow label="Druhá barva" name="backgroundColor2"
-                  value={form.backgroundColor2} onChange={set("backgroundColor2")} />
-              </>
-            )}
-            {form.backgroundType === "image" && (
-              <div>
-                <label className={labelCls}>URL obrázku</label>
-                <input type="url" value={form.backgroundImage}
-                  onChange={e => set("backgroundImage")(e.target.value)}
-                  className={inputCls} placeholder="https://example.com/background.jpg" />
-              </div>
-            )}
-          </div>
-
-          {/* Colors & Font */}
-          <div className={sectionCls}>
-            <div className="flex items-center gap-2 mb-1">
-              <Type size={16} className="text-violet-400" />
-              <span className="text-sm font-bold text-gray-300">Barvy a typografie</span>
-            </div>
+          {/* Globální barvy + font */}
+          <SectionBlock title="Globální barvy a font" open={openSection === "global"}
+            onToggle={() => toggle("global", { type: "global" })}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ColorRow label="Barva textu" name="textColor"
-                value={form.textColor} onChange={set("textColor")} />
-              <ColorRow label="Akcentová barva (čísla, labely)" name="accentColor"
-                value={form.accentColor} onChange={set("accentColor")} />
-              <ColorRow label="Barva správné odpovědi" name="correctColor"
-                value={form.correctColor} onChange={set("correctColor")} />
+              <ColorInput label="Barva textu" value={cfg.textColor} onChange={v => set({ textColor: v })} />
+              <ColorInput label="Akcentová barva" value={cfg.accentColor} onChange={v => set({ accentColor: v })} />
+              <ColorInput label="Správná odpověď" value={cfg.correctColor} onChange={v => set({ correctColor: v })} />
               <div>
-                <label className={labelCls}>Font</label>
-                <select value={form.fontFamily} onChange={e => set("fontFamily")(e.target.value)}
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5">Font</label>
+                <select value={cfg.fontFamily} onChange={e => set({ fontFamily: e.target.value })}
                   className={inputCls + " cursor-pointer [color-scheme:dark]"}>
                   {FONTS.map(f => <option key={f} value={f} className="bg-[#191b2e]">{f}</option>)}
                 </select>
               </div>
             </div>
+          </SectionBlock>
+
+          {/* Typy otázek */}
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center gap-2">
+              <HelpCircle size={15} className="text-blue-400" />
+              <span className="text-sm font-bold text-gray-300">Typy otázek</span>
+              <span className="text-xs text-gray-600 ml-auto">každý typ má vlastní pozadí</span>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {Object.entries(Q_TYPE_DEFAULTS).map(([key, meta]) => {
+                const qt = cfg.questionTypes[key] ?? { name: meta.defaultName, ...DEFAULT_BG }
+                const sKey = `qtype_${key}`
+                const isOpen = openSection === sKey
+                return (
+                  <div key={key}>
+                    <button type="button" onClick={() => toggle(sKey, { type: "qtype", key })}
+                      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
+                      <span className="text-sm font-medium text-gray-300 flex-1 text-left">{meta.label}</span>
+                      <span className="text-xs text-gray-500 italic mr-2 truncate max-w-[140px]">{qt.name}</span>
+                      <div className="w-5 h-5 rounded" style={bgStyle(qt)} />
+                      {isOpen ? <ChevronDown size={14} className="text-gray-500 shrink-0" /> : <ChevronRight size={14} className="text-gray-500 shrink-0" />}
+                    </button>
+                    {isOpen && (
+                      <div className="px-5 pb-4 pt-2 bg-white/[0.01] space-y-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Název (zobrazuje se napříč systémem)</label>
+                          <input value={qt.name} onChange={e => setQType(key, { name: e.target.value })}
+                            className={inputCls} placeholder={meta.defaultName} />
+                        </div>
+                        <BgEditor label="Pozadí" value={qt}
+                          onChange={patch => setQType(key, patch as any)} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
+
+          {/* Stránky */}
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center gap-2">
+              <FileText size={15} className="text-gray-400" />
+              <span className="text-sm font-bold text-gray-300">Stránky</span>
+              <span className="text-xs text-gray-600 ml-1">neomezený počet</span>
+              <button type="button" onClick={addPage}
+                className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-violet-400 hover:bg-violet-500/15 border border-violet-500/30 transition-colors">
+                <Plus size={12} /> Přidat stránku
+              </button>
+            </div>
+            {cfg.pages.length === 0 && (
+              <div className="px-5 py-6 text-center text-sm text-gray-600">
+                Žádné stránky. Přidej první stránku.
+              </div>
+            )}
+            <div className="divide-y divide-white/[0.04]">
+              {cfg.pages.map(page => {
+                const sKey = `page_${page.id}`
+                const isOpen = openSection === sKey
+                return (
+                  <div key={page.id}>
+                    <button type="button" onClick={() => toggle(sKey, { type: "page", id: page.id })}
+                      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                      <FileText size={13} className="text-gray-500 shrink-0" />
+                      <span className="text-sm font-medium text-gray-300 flex-1 text-left truncate">{page.name || "Bez názvu"}</span>
+                      <div className="w-5 h-5 rounded shrink-0" style={bgStyle(page)} />
+                      {isOpen ? <ChevronDown size={14} className="text-gray-500 shrink-0" /> : <ChevronRight size={14} className="text-gray-500 shrink-0" />}
+                    </button>
+                    {isOpen && (
+                      <div className="px-5 pb-4 pt-2 bg-white/[0.01] space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Název stránky (zobrazuje se napříč systémem)</label>
+                            <input value={page.name} onChange={e => updatePage(page.id, { name: e.target.value })}
+                              className={inputCls} placeholder="Název stránky…" />
+                          </div>
+                          <button type="button" onClick={() => removePage(page.id)}
+                            className="mt-6 p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0" title="Smazat stránku">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <BgEditor label="Pozadí" value={page}
+                          onChange={patch => updatePage(page.id, patch as any)} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Oddělovač */}
+          <SectionBlock title="Oddělovač" color="#f59e0b" open={openSection === "separator"}
+            onToggle={() => toggle("separator", { type: "separator" })}
+            preview={
+              <span className="text-xs text-gray-500 italic mr-1 truncate max-w-[120px]">
+                {cfg.separator.name || "Oddělovač"}
+              </span>
+            }>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5">Název (zobrazuje se napříč systémem)</label>
+              <input value={cfg.separator.name} onChange={e => setSeparator({ name: e.target.value })}
+                className={inputCls} placeholder="Opakování odpovědí…" />
+            </div>
+            <BgEditor label="Pozadí" value={cfg.separator}
+              onChange={patch => setSeparator(patch as any)} />
+          </SectionBlock>
+
         </div>
 
         {/* Right — live preview */}
         <div>
-          <TemplatePreview f={form} />
+          <Preview cfg={cfg} active={activePreview} />
         </div>
+
       </div>
     </div>
   )
