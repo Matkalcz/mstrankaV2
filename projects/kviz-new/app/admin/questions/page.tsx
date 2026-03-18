@@ -22,9 +22,9 @@ function formatDate(s: string) {
 }
 
 const TYPE_META: Record<QuestionType, { label: string; bg: string; text: string }> = {
-  simple: { label: "Jednoduchá", bg: "bg-blue-500/20",   text: "text-blue-300" },
-  abcdef: { label: "A–F",        bg: "bg-violet-500/20", text: "text-violet-300" },
-  bonus:  { label: "Bonus",      bg: "bg-amber-500/20",  text: "text-amber-300" },
+  simple: { label: "Otázka", bg: "bg-blue-500/20",   text: "text-blue-300" },
+  abcdef: { label: "AB otázka",        bg: "bg-violet-500/20", text: "text-violet-300" },
+  bonus:  { label: "Bonusová",      bg: "bg-amber-500/20",  text: "text-amber-300" },
   audio:  { label: "Audio",      bg: "bg-cyan-500/20",   text: "text-cyan-300" },
   video:  { label: "Video",      bg: "bg-pink-500/20",   text: "text-pink-300" },
   image:  { label: "Obrázková",  bg: "bg-rose-500/20",   text: "text-rose-300" },

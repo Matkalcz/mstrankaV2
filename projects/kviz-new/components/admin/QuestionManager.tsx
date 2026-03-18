@@ -267,8 +267,8 @@ export default function QuestionManager() {
                                 onChange={handleInputChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                <option value="simple">Jednoduchá odpověď</option>
-                                <option value="ab">A/B</option>
+                                <option value="simple">Otázka</option>
+                                <option value="ab">AB otázka</option>
                                 <option value="abcdef">A-F</option>
                                 <option value="bonus">Bonusová</option>
                                 <option value="audio">Audio</option>

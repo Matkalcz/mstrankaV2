@@ -63,7 +63,7 @@ const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; 
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  simple: 'Prostá', ab: 'A/B', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video'
+  simple: 'Otázka', ab: 'AB otázka', abcdef: 'AB otázka', bonus: 'Bonusová', audio: 'Audio', video: 'Video'
 }
 const DIFF_LABELS: Record<string, string> = { easy: 'Lehká', medium: 'Střední', hard: 'Těžká' }
 const DIFF_COLORS: Record<string, string> = {

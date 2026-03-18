@@ -101,9 +101,9 @@ export default function UniversalQuizRenderer({
 
   const getTypeLabel = () => {
     switch (question.type) {
-      case "simple": return "Jednoduchá otázka"
+      case "simple": return "Otázka"
       case "abcd": return "ABCD otázka"
-      case "abcdef": return "ABCDEF otázka"
+      case "abcdef": return "AB otázka"
       case "bonus": return "Bonusová otázka"
       case "audio": return "Audio otázka"
       case "video": return "Video otázka"

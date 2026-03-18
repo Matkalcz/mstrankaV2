@@ -4,7 +4,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
-  ArrowLeft, Save, Loader2, Palette, Plus, Trash2,
+  ArrowLeft, Save, Loader2, Palette, Plus, Trash2, Upload,
   HelpCircle, FileText, Minus, ChevronDown, ChevronRight, QrCode
 } from "lucide-react"
 import Link from "next/link"
@@ -46,10 +46,10 @@ interface TemplateConfig {
 const DEFAULT_BG: BgConfig = { bgType: "solid", bg1: "#1a1c2e", bg2: "#2d1b69", bgImage: "" }
 
 const Q_TYPE_DEFAULTS: Record<string, { label: string; defaultName: string; color: string }> = {
-  simple:  { label: "Prostá otázka",  defaultName: "Prostá otázka",  color: "#3b82f6" },
-  ab:      { label: "A/B otázka",     defaultName: "A/B otázka",     color: "#8b5cf6" },
-  abcdef:  { label: "ABCDEF otázka",  defaultName: "ABCDEF otázka",  color: "#6366f1" },
-  bonus:   { label: "Bonus",          defaultName: "Bonusová otázka", color: "#f59e0b" },
+  simple:  { label: "Otázka",  defaultName: "Otázka",  color: "#3b82f6" },
+  ab:      { label: "AB otázka",     defaultName: "AB otázka",     color: "#8b5cf6" },
+  abcdef:  { label: "AB otázka",  defaultName: "AB otázka",  color: "#6366f1" },
+  bonus:   { label: "Bonusová",          defaultName: "Bonusová otázka", color: "#f59e0b" },
   audio:   { label: "Audio otázka",   defaultName: "Audio otázka",   color: "#ec4899" },
   video:   { label: "Video otázka",   defaultName: "Video otázka",   color: "#10b981" },
 }
@@ -100,7 +100,22 @@ function BgEditor({ value, onChange, label }: {
   label?: string
 }) {
   const set = (k: keyof BgConfig) => (v: string) => onChange({ [k]: v })
+  const [uploading, setUploading] = useState(false)
   const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+
+  async function uploadImage(file: File) {
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) onChange({ bgImage: data.url })
+      else alert(data.error || 'Chyba při nahrávání')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -128,19 +143,22 @@ function BgEditor({ value, onChange, label }: {
         </div>
       )}
       {value.bgType === "image" && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">URL obrázku</label>
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-gray-400">URL obrázku</label>
           <input type="url" value={value.bgImage} onChange={e => set("bgImage")(e.target.value)}
             className={inputCls} placeholder="https://…/background.jpg" />
+          <label className={"flex items-center gap-2 cursor-pointer w-full justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploading ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
+            <Upload size={14} />
+            {uploading ? "Nahrávám…" : "Nahrát obrázek ze zařízení"}
+            <input type="file" accept="image/*" className="hidden" disabled={uploading}
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }} />
+          </label>
+          {value.bgImage && <img src={value.bgImage} alt="Náhled" className="w-full h-20 object-cover rounded-lg border border-white/10" />}
         </div>
       )}
     </div>
   )
 }
-
-function bgStyle(bg: BgConfig): React.CSSProperties {
-  if (bg.bgType === "gradient") return { background: `linear-gradient(135deg, ${bg.bg1}, ${bg.bg2})` }
-  if (bg.bgType === "image" && bg.bgImage) return { background: `url(${bg.bgImage}) center/cover` }
   return { background: bg.bg1 }
 }
 

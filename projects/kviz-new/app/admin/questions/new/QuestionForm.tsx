@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check, Upload } from "lucide-react"
 import Link from "next/link"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
@@ -43,8 +43,8 @@ interface FormState {
 }
 
 const TYPE_LABELS: Record<QuestionType, string> = {
-  simple: "Jednoduchá",
-  abcdef: "ABCDEF (2–6 možností)",
+  simple: "Otázka",
+  abcdef: "AB otázka",
   bonus:  "Bonusová",
   audio:  "Audio",
   video:  "Video",
@@ -103,6 +103,21 @@ export default function QuestionForm({ tags, question, editId }: Props) {
   const [newTagName, setNewTagName] = useState("")
   const [newTagColor, setNewTagColor] = useState("#7c3aed")
   const [newTagSaving, setNewTagSaving] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+
+  async function uploadMedia(file: File) {
+    setUploadingMedia(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setForm(p => ({ ...p, media_url: data.url }))
+      else alert(data.error || 'Chyba při nahrávání')
+    } finally {
+      setUploadingMedia(false)
+    }
+  }
   const newTagInputRef = useRef<HTMLInputElement>(null)
 
   const handleCreateTag = async () => {
@@ -464,10 +479,16 @@ export default function QuestionForm({ tags, question, editId }: Props) {
         {form.type === "audio" && (
           <div className={sectionCls + " space-y-4"}>
             <div>
-              <label className={labelCls}>URL audio souboru (MP3) <span className="text-red-400">*</span></label>
+              <label className={labelCls}>Audio soubor (MP3) <span className="text-red-400">*</span></label>
               <input type="url" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/audio.mp3" />
+              <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
+                <Upload size={13} />
+                {uploadingMedia ? "Nahrávám…" : "Nahrát MP3 ze zařízení"}
+                <input type="file" accept="audio/*" className="hidden" disabled={uploadingMedia}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
+              </label>
               {form.media_url && <audio src={form.media_url} controls className="mt-2 w-full h-10" />}
             </div>
             <div>
@@ -483,10 +504,17 @@ export default function QuestionForm({ tags, question, editId }: Props) {
         {form.type === "video" && (
           <div className={sectionCls + " space-y-4"}>
             <div>
-              <label className={labelCls}>URL videa <span className="text-red-400">*</span></label>
+              <label className={labelCls}>Video soubor <span className="text-red-400">*</span></label>
               <input type="url" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/video.mp4" />
+              <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
+                <Upload size={13} />
+                {uploadingMedia ? "Nahrávám…" : "Nahrát video ze zařízení"}
+                <input type="file" accept="video/*" className="hidden" disabled={uploadingMedia}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
+              </label>
+              {form.media_url && <video src={form.media_url} controls className="mt-2 w-full max-h-40 rounded-lg" />}
             </div>
             <div>
               <label className={labelCls}>Správná odpověď <span className="text-red-400">*</span></label>
@@ -501,10 +529,16 @@ export default function QuestionForm({ tags, question, editId }: Props) {
         {form.type === "image" && (
           <div className={sectionCls + " space-y-4"}>
             <div>
-              <label className={labelCls}>URL obrázku <span className="text-red-400">*</span></label>
+              <label className={labelCls}>Obrázek <span className="text-red-400">*</span></label>
               <input type="url" value={form.media_url}
                 onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
                 className={inputCls} placeholder="https://example.com/obrazek.jpg" />
+              <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
+                <Upload size={13} />
+                {uploadingMedia ? "Nahrávám…" : "Nahrát obrázek ze zařízení"}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingMedia}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
+              </label>
               {form.media_url && (
                 <img src={form.media_url} alt="Náhled"
                   className="mt-2 max-h-48 rounded-lg border border-white/[0.08] object-contain"
@@ -523,8 +557,6 @@ export default function QuestionForm({ tags, question, editId }: Props) {
             </div>
           </div>
         )}
-
-        {/* Bottom actions */}
         <div className="flex items-center gap-3 pt-2">
           <button type="submit" disabled={loading}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 disabled:opacity-50 transition-all active:scale-95">
