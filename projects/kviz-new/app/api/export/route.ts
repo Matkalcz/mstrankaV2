@@ -1,181 +1,91 @@
+// app/api/export/route.ts — Export kvízu do PPTX
 import { NextRequest, NextResponse } from 'next/server'
-import mockDatabase from '@/lib/database-mock'
+import { quizzes } from '@/lib/database'
 import { PPTXExporter } from '@/lib/export/pptx-exporter'
-import { QuestionData } from '@/components/universal-quiz-renderer'
 
-const { quizzes, exports: dbExports } = mockDatabase
-
-// Define types for database quizzes
-interface DatabaseQuiz {
-    id: string
-    name: string
-    description?: string
-    template_id?: string
-    sequence?: string
-    status: string
-    created_at: string
-    updated_at: string
-    author?: string
-}
-
-// Define types for quiz questions
-interface DatabaseQuestion {
-    id: string
-    text: string
-    type: string
-    correct_answer?: string
-    options?: string
-    media_url?: string
-    points: number
-    category?: string
-    difficulty?: string
-    created_at: string
-    updated_at: string
-    order_index: number
-    round_number: number
-}
-
-// POST /api/export - Export a quiz to PPTX
+// POST /api/export — spustí export, vrátí download URL
 export async function POST(request: NextRequest) {
-    try {
-        const data = await request.json()
+  try {
+    const data = await request.json()
+    if (!data.quizId) return NextResponse.json({ error: 'Chybí quizId' }, { status: 400 })
 
-        // Validate required fields
-        if (!data.quizId) {
-            return NextResponse.json(
-                { error: 'Missing required field: quizId' },
-                { status: 400 }
-            )
-        }
+    const quiz = quizzes.getById(data.quizId) as any
+    if (!quiz) return NextResponse.json({ error: 'Kvíz nenalezen' }, { status: 404 })
 
-        // Check if quiz exists
-        const quiz = quizzes.getById(data.quizId) as DatabaseQuiz | undefined
-        if (!quiz) {
-            return NextResponse.json(
-                { error: 'Quiz not found' },
-                { status: 404 }
-            )
-        }
+    const quizQuestions = quizzes.getQuestions(data.quizId) as any[]
 
-        // Get quiz questions
-        const quizQuestions = quizzes.getQuestions(data.quizId) as DatabaseQuestion[]
+    const questions = quizQuestions.map((q, idx) => ({
+      id: q.id,
+      text: q.text,
+      type: q.type,
+      correctAnswer: q.correct_answer,
+      options: q.options ? JSON.parse(q.options) : [],
+      bonusAnswers: q.type === 'bonus' ? (q.options ? JSON.parse(q.options).map((o: any) => o.text) : []) : undefined,
+      mediaUrl: q.media_url,
+      mediaType: q.type === 'audio' ? 'audio' : q.type === 'video' ? 'video' : undefined,
+      questionNumber: idx + 1,
+      roundNumber: q.round_number || 1,
+      difficulty: q.difficulty,
+    }))
 
-        // Convert database questions to QuestionData format
-        const questions: QuestionData[] = quizQuestions.map((q) => ({
-            id: q.id,
-            text: q.text,
-            type: q.type as any, // Type will be validated by PPTXExporter
-            correctAnswer: q.correct_answer,
-            options: q.options ? JSON.parse(q.options) : [],
-            bonusAnswers: q.type === 'bonus' ? [] : undefined,
-            mediaUrl: q.media_url,
-            mediaType: q.type === 'audio' ? 'audio' : q.type === 'video' ? 'video' : undefined,
-            questionNumber: q.order_index + 1,
-            roundNumber: q.round_number || 1,
-            category: q.category,
-            difficulty: q.difficulty as any
-        }))
+    const exporter = new PPTXExporter({
+      title: quiz.name,
+      author: quiz.author || 'Hospodský Kvíz',
+      theme: 'colorful',
+      includeAnswers: true,
+      includeNotes: true,
+      slideSize: '16:9',
+    })
 
-        // Create exporter
-        const exporter = new PPTXExporter({
-            title: quiz.name,
-            author: quiz.author || 'Hospodský Kvíz System',
-            theme: 'colorful',
-            includeAnswers: true,
-            includeNotes: true,
-            slideSize: '16:9'
-        })
-
-        // Create quiz config for SequenceGenerator
-        const quizConfig = {
-            title: quiz.name,
-            subtitle: quiz.description || '',
-            author: quiz.author || 'Hospodský Kvíz System',
-            defaultQuestionDuration: 10000,
-            defaultAnswerDuration: 8000,
-            introDuration: 5000,
-            separatorDuration: 3000,
-            outroDuration: 5000,
-            showIntro: true,
-            showSeparators: true,
-            showOutro: true,
-            autoAdvance: true,
-            rounds: [{
-                number: 1,
-                name: 'Hlavní kolo',
-                questions: questions
-            }]
-        }
-
-        // Export quiz
-        const result = await exporter.exportQuiz(questions, quizConfig)
-
-        if (!result.success) {
-            return NextResponse.json(
-                { error: result.error || 'Export failed' },
-                { status: 500 }
-            )
-        }
-
-        // Save export record to database
-        const exportId = dbExports.create(data.quizId, 'pptx')
-        dbExports.updateStatus(exportId, 'completed', result.fileName)
-
-        return NextResponse.json({
-            success: true,
-            exportId,
-            fileName: result.fileName,
-            fileSize: result.fileSize,
-            slideCount: result.slideCount,
-            downloadUrl: result.downloadUrl,
-            message: 'Quiz exported successfully'
-        })
-
-    } catch (error) {
-        console.error('POST /api/export error:', error)
-        return NextResponse.json(
-            { error: 'Failed to export quiz' },
-            { status: 500 }
-        )
+    const quizConfig = {
+      title: quiz.name,
+      subtitle: quiz.description || '',
+      author: quiz.author || 'Hospodský Kvíz',
+      defaultQuestionDuration: 10000,
+      defaultAnswerDuration: 8000,
+      introDuration: 5000,
+      separatorDuration: 3000,
+      outroDuration: 5000,
+      showIntro: true,
+      showSeparators: true,
+      showOutro: true,
+      autoAdvance: true,
+      rounds: [{ number: 1, name: 'Kolo 1', questions }],
     }
+
+    const result = await exporter.exportQuiz(questions, quizConfig)
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Export selhal' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      fileName: result.fileName,
+      fileSize: result.fileSize,
+      slideCount: result.slideCount,
+      downloadUrl: result.downloadUrl,
+    })
+
+  } catch (error) {
+    console.error('POST /api/export error:', error)
+    return NextResponse.json({ error: 'Export selhal' }, { status: 500 })
+  }
 }
 
-// GET /api/export/[quizId] - Get export history for a quiz
+// GET /api/export?quizId=xxx — info o kvízu pro export
 export async function GET(request: NextRequest) {
-    try {
-        const searchParams = request.nextUrl.searchParams
-        const quizId = searchParams.get('quizId')
+  try {
+    const quizId = request.nextUrl.searchParams.get('quizId')
+    if (!quizId) return NextResponse.json({ error: 'Chybí quizId' }, { status: 400 })
 
-        if (!quizId) {
-            return NextResponse.json(
-                { error: 'Missing required parameter: quizId' },
-                { status: 400 }
-            )
-        }
+    const quiz = quizzes.getById(quizId) as any
+    if (!quiz) return NextResponse.json({ error: 'Kvíz nenalezen' }, { status: 404 })
 
-        // Check if quiz exists
-        const quiz = quizzes.getById(quizId) as DatabaseQuiz | undefined
-        if (!quiz) {
-            return NextResponse.json(
-                { error: 'Quiz not found' },
-                { status: 404 }
-            )
-        }
+    const questionCount = (quizzes.getQuestions(quizId) as any[]).length
 
-        // Get export history
-        const exportHistory = dbExports.getByQuiz(quizId)
-
-        return NextResponse.json({
-            quizId,
-            quizName: quiz.name,
-            exports: exportHistory
-        })
-
-    } catch (error) {
-        console.error('GET /api/export error:', error)
-        return NextResponse.json(
-            { error: 'Failed to fetch export history' },
-            { status: 500 }
-        )
-    }
+    return NextResponse.json({ quizId, quizName: quiz.name, questionCount })
+  } catch (error) {
+    return NextResponse.json({ error: 'Chyba' }, { status: 500 })
+  }
 }
