@@ -174,8 +174,8 @@ export default function QuizzesPage() {
                           className="p-2 rounded-lg text-gray-500 hover:bg-violet-500/15 hover:text-violet-300 transition-colors" title="Divák (veřejný pohled)">
                           <Eye size={14} />
                         </button>
-                        <button onClick={() => router.push(`/admin/quizzes/new?id=${q.id}`)}
-                          className="p-2 rounded-lg text-gray-500 hover:bg-blue-500/15 hover:text-blue-300 transition-colors" title="Upravit">
+                        <button onClick={() => router.push(`/admin/quizzes/${q.id}`)}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-blue-500/15 hover:text-blue-300 transition-colors" title="Sestavovač">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => handleDelete(q.id, q.name)} disabled={deletingId === q.id}

@@ -1,0 +1,508 @@
+// app/admin/quizzes/[id]/page.tsx — Sestavovač kvízu
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import {
+  ArrowLeft, Play, Eye, Save, Loader2, Plus, Trash2, GripVertical,
+  FileText, Flag, Minus, HelpCircle, Search, X, ChevronDown, Check,
+  SlidersHorizontal
+} from 'lucide-react'
+import Link from 'next/link'
+
+// ─── Typy ─────────────────────────────────────────────────────────────────────
+
+type SlideType = 'page' | 'round_start' | 'separator' | 'question'
+
+interface SlideItem {
+  _key: string   // lokální klíč pro React
+  type: SlideType
+  // page
+  title?: string
+  content?: string
+  // round_start
+  roundNumber?: number
+  subtitle?: string
+  // separator
+  // question
+  questionId?: string
+  questionText?: string
+  questionType?: string
+}
+
+interface QuestionData {
+  id: string
+  text: string
+  type: string
+  difficulty?: string
+  points: number
+  tags: { id: string; name: string; color: string }[]
+  correct_answer?: string
+}
+
+interface QuizData {
+  id: string
+  name: string
+  description?: string
+  status: string
+  template_id?: string
+  sequence: any[]
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+let keyCounter = 0
+const uid = () => `k${++keyCounter}`
+
+const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  page:        { label: 'Stránka',     color: 'text-gray-300',   bg: 'bg-gray-500/10',   border: 'border-gray-500/25',   icon: FileText },
+  round_start: { label: 'Start kola',  color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/25', icon: Flag },
+  separator:   { label: 'Oddělovač',   color: 'text-amber-300',  bg: 'bg-amber-500/10',  border: 'border-amber-500/25',  icon: Minus },
+  question:    { label: 'Otázka',      color: 'text-blue-300',   bg: 'bg-blue-500/10',   border: 'border-blue-500/25',   icon: HelpCircle },
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  simple: 'Prostá', ab: 'A/B', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video'
+}
+const DIFF_LABELS: Record<string, string> = { easy: 'Lehká', medium: 'Střední', hard: 'Těžká' }
+const DIFF_COLORS: Record<string, string> = {
+  easy: 'text-emerald-400', medium: 'text-amber-400', hard: 'text-red-400'
+}
+
+function sequenceToItems(seq: any[], questions: QuestionData[]): SlideItem[] {
+  const qMap = new Map(questions.map(q => [q.id, q]))
+  return (seq || []).map(item => {
+    if (item.type === 'question') {
+      const q = qMap.get(item.questionId)
+      return {
+        _key: uid(),
+        type: 'question' as SlideType,
+        questionId: item.questionId,
+        questionText: q?.text || item.questionId,
+        questionType: q?.type || '?',
+      }
+    }
+    return { ...item, _key: uid() }
+  })
+}
+
+function itemsToSequence(items: SlideItem[]): any[] {
+  return items.map(({ _key, questionText, questionType, ...rest }) => rest)
+}
+
+// ─── Modal pro výběr otázky ────────────────────────────────────────────────────
+
+function QuestionModal({ questions, onSelect, onClose }: {
+  questions: QuestionData[]
+  onSelect: (q: QuestionData) => void
+  onClose: () => void
+}) {
+  const [search, setSearch] = useState('')
+  const [filterType, setFilterType] = useState('')
+  const [filterDiff, setFilterDiff] = useState('')
+
+  const filtered = questions.filter(q => {
+    const matchSearch = !search || q.text.toLowerCase().includes(search.toLowerCase())
+    const matchType = !filterType || q.type === filterType
+    const matchDiff = !filterDiff || q.difficulty === filterDiff
+    return matchSearch && matchType && matchDiff
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#13152a] border border-white/[0.1] rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
+          <h2 className="text-lg font-bold text-white">Vybrat otázku</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+        </div>
+
+        {/* Filters */}
+        <div className="px-6 py-3 border-b border-white/[0.06] flex gap-3">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Hledat otázku…"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+          </div>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="px-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-gray-300 focus:outline-none [color-scheme:dark]">
+            <option value="">Všechny typy</option>
+            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <select value={filterDiff} onChange={e => setFilterDiff(e.target.value)}
+            className="px-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-gray-300 focus:outline-none [color-scheme:dark]">
+            <option value="">Obtížnost</option>
+            <option value="easy">Lehká</option>
+            <option value="medium">Střední</option>
+            <option value="hard">Těžká</option>
+          </select>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
+          {filtered.length === 0 ? (
+            <p className="px-6 py-8 text-center text-gray-600">Žádná otázka nenalezena</p>
+          ) : filtered.map(q => (
+            <button key={q.id} onClick={() => onSelect(q)}
+              className="w-full text-left px-6 py-4 hover:bg-white/[0.04] transition-colors group">
+              <div className="flex items-start gap-4">
+                <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">
+                    {TYPE_LABELS[q.type] || q.type}
+                  </span>
+                  <span className={`text-[10px] font-medium ${DIFF_COLORS[q.difficulty || ''] || 'text-gray-500'}`}>
+                    {DIFF_LABELS[q.difficulty || ''] || ''}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-200 group-hover:text-white leading-snug line-clamp-2">{q.text}</p>
+                  {q.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
+                      {q.tags.map(t => (
+                        <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                          style={{ backgroundColor: t.color + '28', color: t.color }}>
+                          {t.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Check size={16} className="text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="px-6 py-3 border-t border-white/[0.06] text-xs text-gray-600">
+          {filtered.length} otázek
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Inline editor slide ───────────────────────────────────────────────────────
+
+function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Partial<SlideItem>) => void }) {
+  if (item.type === 'question') return null
+
+  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500"
+
+  if (item.type === 'page') return (
+    <div className="mt-2 space-y-1.5">
+      <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
+        placeholder="Název stránky…" className={inputCls} />
+      <textarea value={item.content || ''} onChange={e => onChange({ content: e.target.value })}
+        placeholder="Obsah stránky…" rows={2} className={inputCls + ' resize-none'} />
+    </div>
+  )
+
+  if (item.type === 'round_start') return (
+    <div className="mt-2 space-y-1.5">
+      <div className="flex gap-2">
+        <input type="number" value={item.roundNumber || 1} min={1}
+          onChange={e => onChange({ roundNumber: parseInt(e.target.value) || 1 })}
+          className={inputCls + ' w-20'} placeholder="Kolo" />
+        <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
+          placeholder="Název kola…" className={inputCls + ' flex-1'} />
+      </div>
+      <input value={item.subtitle || ''} onChange={e => onChange({ subtitle: e.target.value })}
+        placeholder="Podnadpis…" className={inputCls} />
+    </div>
+  )
+
+  if (item.type === 'separator') return (
+    <div className="mt-2">
+      <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
+        placeholder="Text oddělovače (např. Opakování odpovědí)…" className={inputCls} />
+    </div>
+  )
+
+  return null
+}
+
+// ─── Hlavní stránka ───────────────────────────────────────────────────────────
+
+export default function QuizBuilderPage() {
+  const params = useParams()
+  const router = useRouter()
+  const quizId = params.id as string
+
+  const [quiz, setQuiz] = useState<QuizData | null>(null)
+  const [allQuestions, setAllQuestions] = useState<QuestionData[]>([])
+  const [items, setItems] = useState<SlideItem[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
+
+  // Load quiz + questions
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/quizzes/${quizId}`).then(r => r.json()),
+      fetch('/api/questions').then(r => r.json()),
+    ]).then(([quizData, qData]) => {
+      setQuiz(quizData)
+      const qs = Array.isArray(qData) ? qData : []
+      setAllQuestions(qs)
+      setItems(sequenceToItems(quizData.sequence || [], qs))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [quizId])
+
+  // ── Slide akce ─────────────────────────────────────────────────────────────
+
+  const addSlide = (type: SlideType) => {
+    const newItem: SlideItem = { _key: uid(), type }
+    if (type === 'round_start') newItem.roundNumber = 1
+    setItems(prev => [...prev, newItem])
+  }
+
+  const addQuestion = (q: QuestionData) => {
+    setItems(prev => [...prev, {
+      _key: uid(),
+      type: 'question',
+      questionId: q.id,
+      questionText: q.text,
+      questionType: q.type,
+    }])
+    setShowModal(false)
+  }
+
+  const removeItem = (key: string) => setItems(prev => prev.filter(i => i._key !== key))
+
+  const updateItem = (key: string, patch: Partial<SlideItem>) =>
+    setItems(prev => prev.map(i => i._key === key ? { ...i, ...patch } : i))
+
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
+
+  const handleDragStart = (index: number) => setDragIndex(index)
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDragOver(index)
+  }
+  const handleDrop = (targetIndex: number) => {
+    if (dragIndex === null || dragIndex === targetIndex) { setDragIndex(null); setDragOver(null); return }
+    setItems(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(dragIndex, 1)
+      next.splice(targetIndex, 0, moved)
+      return next
+    })
+    setDragIndex(null)
+    setDragOver(null)
+  }
+
+  // ── Uložit ─────────────────────────────────────────────────────────────────
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await fetch(`/api/quizzes/${quizId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...quiz, sequence: itemsToSequence(items) }),
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {}
+    setSaving(false)
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  if (loading) return (
+    <div className="flex justify-center items-center h-full py-32">
+      <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!quiz) return (
+    <div className="px-8 py-16 text-center text-gray-500">Kvíz nenalezen</div>
+  )
+
+  const questionCount = items.filter(i => i.type === 'question').length
+  const roundCount = items.filter(i => i.type === 'round_start').length
+
+  return (
+    <div className="flex flex-col h-full">
+
+      {/* Header */}
+      <div className="px-8 pt-8 pb-5 border-b border-white/[0.08] bg-[#0f1120] sticky top-0 z-10">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Link href="/admin/quizzes"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-2 transition-colors">
+              <ArrowLeft size={12} /> Zpět na kvízy
+            </Link>
+            <h1 className="text-2xl font-bold text-white">{quiz.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {items.length} slidů · {questionCount} otázek · {roundCount} kol
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.open(`/watch/${quizId}`, '_blank')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors">
+              <Eye size={15} /> Divák
+            </button>
+            <button onClick={() => window.open(`/play/${quizId}`, '_blank')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors">
+              <Play size={15} /> Přehrát
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                saved
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25'
+              } disabled:opacity-60`}>
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {saved ? 'Uloženo!' : 'Uložit'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Two-panel layout */}
+      <div className="flex flex-1 min-h-0">
+
+        {/* ── Levý panel — paleta ─────────────────────────────────────────────── */}
+        <div className="w-56 shrink-0 border-r border-white/[0.07] bg-[#0d0f1c] flex flex-col">
+          <div className="px-4 py-4 border-b border-white/[0.07]">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Přidat prvek</p>
+            <div className="space-y-1.5">
+              <button onClick={() => addSlide('round_start')}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-colors text-sm font-medium">
+                <Flag size={15} /> Start kola
+              </button>
+              <button onClick={() => addSlide('page')}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-gray-300 hover:bg-white/[0.08] transition-colors text-sm font-medium">
+                <FileText size={15} /> Stránka
+              </button>
+              <button onClick={() => addSlide('separator')}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium">
+                <Minus size={15} /> Oddělovač
+              </button>
+              <button onClick={() => setShowModal(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors text-sm font-medium">
+                <HelpCircle size={15} /> + Otázka
+              </button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="px-4 py-4 space-y-3">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sekvence</p>
+            {[
+              { label: 'Otázek',  value: questionCount, color: 'text-blue-300' },
+              { label: 'Kol',     value: roundCount,    color: 'text-violet-300' },
+              { label: 'Slidů',   value: items.length,  color: 'text-gray-300' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">{label}</span>
+                <span className={`text-sm font-bold ${color}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-auto px-4 pb-4">
+            <p className="text-[10px] text-gray-600 leading-relaxed">
+              Táhni slidy pro změnu pořadí. Oddělovač vloží opakování odpovědí kola.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Pravý panel — sekvence ─────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+              <SlidersHorizontal size={40} className="text-gray-700" />
+              <p className="text-gray-500">Sekvence je prázdná.<br />Přidej prvky z levého panelu.</p>
+              <button onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 transition-colors text-sm font-semibold">
+                <Plus size={15} /> Přidat první otázku
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 max-w-2xl">
+              {items.map((item, index) => {
+                const meta = SLIDE_META[item.type]
+                const Icon = meta.icon
+                const isDragging = dragIndex === index
+                const isOver = dragOver === index
+
+                return (
+                  <div
+                    key={item._key}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={e => handleDragOver(e, index)}
+                    onDragEnd={() => { setDragIndex(null); setDragOver(null) }}
+                    onDrop={() => handleDrop(index)}
+                    className={`group relative rounded-xl border transition-all ${meta.bg} ${meta.border} ${
+                      isDragging ? 'opacity-40 scale-95' : isOver ? 'ring-2 ring-violet-500/50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 px-4 py-3">
+                      {/* Drag handle + number */}
+                      <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                        <GripVertical size={14} className="text-gray-600 cursor-grab active:cursor-grabbing" />
+                        <span className="text-[10px] text-gray-600 font-mono">{index + 1}</span>
+                      </div>
+
+                      {/* Icon + content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Icon size={14} className={meta.color} />
+                          <span className={`text-[11px] font-bold uppercase tracking-wider ${meta.color}`}>
+                            {meta.label}
+                          </span>
+                          {item.type === 'question' && item.questionType && (
+                            <span className="text-[10px] text-gray-500 font-medium">
+                              {TYPE_LABELS[item.questionType] || item.questionType}
+                            </span>
+                          )}
+                        </div>
+
+                        {item.type === 'question' ? (
+                          <p className="text-sm text-gray-300 leading-snug line-clamp-2">{item.questionText}</p>
+                        ) : (
+                          <SlideEditor item={item} onChange={patch => updateItem(item._key, patch)} />
+                        )}
+                      </div>
+
+                      {/* Delete */}
+                      <button onClick={() => removeItem(item._key)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Přidat otázku na konec */}
+              <button onClick={() => setShowModal(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-white/[0.1] text-gray-600 hover:text-gray-400 hover:border-white/[0.2] transition-colors text-sm">
+                <Plus size={14} /> Přidat otázku
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <QuestionModal
+          questions={allQuestions}
+          onSelect={addQuestion}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  )
+}
