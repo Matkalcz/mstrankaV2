@@ -181,15 +181,35 @@ Stránka editace kvízu má dva panely:
 
 ---
 
-## Fáze 5 — Přehrávací stránka (public)
-**Soubor:** `app/play/[id]/page.tsx`
+## Fáze 5 — Přehrávací stránka (public) + Divácký pohled + QR kód
+**Soubory:** `app/play/[id]/page.tsx`, `app/watch/[id]/page.tsx`
 
+### 5.1 Moderátorský přehrávač (`/play/[id]`)
 - Načte kvíz z DB, sestaví sekvenci slidů (expanduje oddělovač → replay)
 - Renderuje `SimpleQuizPlayer` na celou obrazovku
 - Informační lišta pro moderátora (toggle skrytí klávesou `H`)
 - Funguje i bez internetu (SQLite je lokální)
+- Tlačítko **"Otevřít divácký pohled"** → otevře `/watch/[id]` v novém okně (`target="_blank"`)
 
-**Odhadovaná náročnost: 2–3 hodiny**
+### 5.2 Divácký pohled (`/watch/[id]`) — NOVÝ POŽADAVEK
+- **Veřejná, fullscreen URL** bez jakýchkoliv ovladačů, sliderů ani admin prvků
+- Zobrazuje totožný obsah jako moderátorský pohled (synchronizace přes polling nebo SSE)
+- URL formát: `https://kviz.michaljanda.com/watch/[quiz-id]`
+- Přístupná bez přihlášení — určena pro TV/projektor v místnosti
+- Čistá prezentační vrstva: jen slide, žádné UI
+
+### 5.3 QR kód na startovní stránce kvízu
+- Na úvodním slidu kvízu (před první otázkou) se zobrazí QR kód s URL diváckého pohledu
+- QR kód generován na klientu (knihovna `qrcode` nebo `qrcode.react`)
+- Účel: diváci si naskenují a otevřou `/watch/[id]` na svém telefonu
+- QR kód musí být dostatečně velký pro naskenování z dálky (min. 250×250 px)
+
+### 5.4 Tlačítko ve výpisu kvízů (`/admin/quizzes`)
+- Každý řádek kvízu ve výpisu má tlačítko **"▶ Spustit"** → otevře `/play/[id]` v novém okně
+- Každý řádek má také tlačítko **"👁 Divák"** → otevře `/watch/[id]` v novém okně
+- (Tlačítko ▶ Spustit již existuje — doplnit pouze divácký odkaz)
+
+**Odhadovaná náročnost: 3–5 hodin**
 
 ---
 
@@ -228,12 +248,12 @@ Stránka editace kvízu má dva panely:
 | 2 | Kategorie + šablony | 3–5 h | 🔴 Kritická (NEXT) |
 | 3 | Přehrávač (refaktor) | 5–8 h | 🔴 Kritická |
 | 4 | Sestavovač kvízu | 6–10 h | 🟠 Vysoká |
-| 5 | Public přehrávač | 2–3 h | 🟠 Vysoká |
+| 5 | Public přehrávač + Divák + QR | 3–5 h | 🟠 Vysoká |
 | 6 | Export PPTX | 4–6 h | 🟡 Střední |
 | 7 | Stabilizace | 2–3 h | 🟡 Střední |
 | **Celkem** | | **26–41 h** | |
 
-**Realistický odhad: 30–35 hodin práce agenta**
+**Realistický odhad: 31–38 hodin práce agenta**
 
 ---
 
