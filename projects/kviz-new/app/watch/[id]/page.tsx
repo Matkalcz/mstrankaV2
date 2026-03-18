@@ -6,17 +6,23 @@ import { useParams } from 'next/navigation'
 import { Volume2, Video } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
+// ─── Typy ─────────────────────────────────────────────────────────────────────
+
 interface QuestionData {
   id: string
   text: string
-  type: 'simple' | 'ab' | 'abcdef' | 'bonus' | 'audio' | 'video'
+  type: 'simple' | 'abcdef' | 'bonus' | 'audio' | 'video' | 'image'
   correct_answer?: string
-  options?: { label: string; text: string; correct?: boolean }[]
+  options?: { label?: string; text: string; correct?: boolean; isCorrect?: boolean }[]
   media_url?: string
   points: number
 }
 
 type SlideType = 'page' | 'round_start' | 'question' | 'separator' | 'qr_page'
+
+interface BgCfg {
+  bgType?: string; bg1?: string; bg2?: string; bgImage?: string
+}
 
 interface Slide {
   type: SlideType
@@ -24,8 +30,22 @@ interface Slide {
   content?: string
   subtitle?: string
   roundNumber?: number
+  templatePageId?: string
   question?: QuestionData
   showAnswer?: boolean
+  noAnswerPhase?: boolean
+}
+
+interface TemplateConfig {
+  textColor?: string
+  accentColor?: string
+  correctColor?: string
+  fontFamily?: string
+  questionTypes?: Record<string, BgCfg>
+  separator?: BgCfg
+  qrPage?: BgCfg
+  roundStart?: BgCfg
+  pages?: Array<{ id: string; name?: string } & BgCfg>
 }
 
 interface QuizData {
@@ -33,24 +53,61 @@ interface QuizData {
   name: string
   sequence: any[]
   questions: QuestionData[]
+  template_id?: string
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function bgStyle(cfg: BgCfg | undefined | null): React.CSSProperties {
+  if (!cfg) return {}
+  if (cfg.bgType === 'gradient' && cfg.bg1 && cfg.bg2)
+    return { background: `linear-gradient(135deg, ${cfg.bg1}, ${cfg.bg2})` }
+  if (cfg.bgType === 'image' && cfg.bgImage)
+    return { backgroundImage: `url(${cfg.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+  if (cfg.bg1) return { backgroundColor: cfg.bg1 }
+  return {}
+}
+
+function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSProperties {
+  if (!tmpl) return {}
+  if (slide.type === 'question' && slide.question)
+    return bgStyle(tmpl.questionTypes?.[slide.question.type])
+  if (slide.type === 'separator') return bgStyle(tmpl.separator)
+  if (slide.type === 'qr_page') return bgStyle(tmpl.qrPage)
+  if (slide.type === 'round_start') return bgStyle(tmpl.roundStart as BgCfg | undefined)
+  if (slide.type === 'page') {
+    const page = slide.templatePageId
+      ? tmpl.pages?.find(p => p.id === slide.templatePageId)
+      : tmpl.pages?.[0]
+    return bgStyle(page)
+  }
+  return {}
 }
 
 function buildSlides(quiz: QuizData): Slide[] {
   if (!quiz.sequence || quiz.sequence.length === 0) {
     return quiz.questions.map(q => ({ type: 'question' as SlideType, question: q }))
   }
+  const hasSeparator = quiz.sequence.some(item => item.type === 'separator')
   const qMap = new Map(quiz.questions.map(q => [q.id, q]))
   const slides: Slide[] = []
+
   for (const item of quiz.sequence) {
     if (item.type === 'question') {
       const q = qMap.get(item.questionId)
-      if (q) slides.push({ type: 'question', question: q })
+      if (q) slides.push({ type: 'question', question: q, noAnswerPhase: hasSeparator })
     } else if (item.type === 'separator') {
-      slides.push({ type: 'separator', title: item.title || 'Opakování odpovědí' })
+      slides.push({ type: 'separator', title: item.title })
       const prevQ = slides
         .filter(s => s.type === 'question' && !s.showAnswer)
-        .map(s => ({ type: 'question' as SlideType, question: s.question!, showAnswer: true }))
+        .map(s => ({ type: 'question' as SlideType, question: s.question!, showAnswer: true, noAnswerPhase: false }))
       slides.push(...prevQ)
+    } else if (item.type === 'round_start') {
+      slides.push({ type: 'round_start', title: item.title, subtitle: item.subtitle, roundNumber: item.roundNumber })
+    } else if (item.type === 'qr_page') {
+      slides.push({ type: 'qr_page', title: item.title, content: item.content })
+    } else if (item.type === 'page') {
+      slides.push({ type: 'page', title: item.title, content: item.content, templatePageId: item.templatePageId })
     } else {
       slides.push(item as Slide)
     }
@@ -58,16 +115,37 @@ function buildSlides(quiz: QuizData): Slide[] {
   return slides
 }
 
-const optionColors = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 'bg-red-600', 'bg-violet-600', 'bg-pink-600']
-const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F']
+function computeRoundNumber(slides: Slide[], idx: number): number | undefined {
+  for (let i = idx - 1; i >= 0; i--) {
+    if (slides[i].type === 'round_start') return slides[i].roundNumber
+    if (slides[i].type === 'separator') break
+  }
+  return undefined
+}
 
-const START_URL = typeof window !== 'undefined'
-  ? `${window.location.protocol}//${window.location.host}/start`
-  : 'https://kviz.michaljanda.com/start'
+// ─── Option colors ─────────────────────────────────────────────────────────────
 
-function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
+const OPTION_COLORS = [
+  { bg: 'bg-blue-600', border: 'border-blue-500', label: 'bg-blue-700' },
+  { bg: 'bg-emerald-600', border: 'border-emerald-500', label: 'bg-emerald-700' },
+  { bg: 'bg-amber-500', border: 'border-amber-400', label: 'bg-amber-600' },
+  { bg: 'bg-red-600', border: 'border-red-500', label: 'bg-red-700' },
+  { bg: 'bg-violet-600', border: 'border-violet-500', label: 'bg-violet-700' },
+  { bg: 'bg-pink-600', border: 'border-pink-500', label: 'bg-pink-700' },
+]
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+
+// ─── SlideView ─────────────────────────────────────────────────────────────────
+
+function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
+  slide: Slide; phase: number; tmpl: TemplateConfig | null; slideIdx: number; slides: Slide[]
+}) {
   const q = slide.question
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  const textColor = tmpl?.textColor || '#ffffff'
+  const accentColor = tmpl?.accentColor || '#8b5cf6'
+  const roundNumber = computeRoundNumber(slides, slideIdx)
 
   useEffect(() => {
     if (q?.type === 'audio' && phase === 1 && audioRef.current) {
@@ -75,140 +153,191 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
     }
   }, [phase, q?.type])
 
-  if (slide.type === 'page') return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-16 gap-6">
-      {slide.title && <h1 className="text-6xl font-black text-white leading-tight">{slide.title}</h1>}
-      {slide.content && <p className="text-3xl text-gray-300 max-w-3xl">{slide.content}</p>}
-    </div>
-  )
+  const startUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.host}/start`
+    : 'https://kviz.michaljanda.com/start'
+
+  // Page slide — only background image, no text
+  if (slide.type === 'page') {
+    return (
+      <div className="relative h-full w-full">
+        {roundNumber !== undefined && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+            <span className="text-xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.4 }}>
+              {roundNumber}. kolo
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (slide.type === 'round_start') return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-6">
-      <div className="text-violet-400 text-2xl font-bold tracking-widest uppercase">Kolo {slide.roundNumber}</div>
-      <h1 className="text-7xl font-black text-white">{slide.title || `Kolo ${slide.roundNumber}`}</h1>
-      {slide.subtitle && <p className="text-3xl text-gray-400 mt-2">{slide.subtitle}</p>}
+      <div className="text-2xl font-bold tracking-widest uppercase" style={{ color: accentColor }}>
+        Kolo {slide.roundNumber}
+      </div>
+      <h1 className="text-7xl font-black leading-tight" style={{ color: textColor }}>
+        {slide.title || `Kolo ${slide.roundNumber}`}
+      </h1>
+      {slide.subtitle && <p className="text-3xl mt-2" style={{ color: textColor, opacity: 0.7 }}>{slide.subtitle}</p>}
     </div>
   )
 
   if (slide.type === 'separator') return (
     <div className="flex flex-col items-center justify-center h-full gap-8">
-      <div className="w-32 h-1.5 bg-violet-500 rounded-full" />
-      <h2 className="text-5xl font-bold text-violet-300">{slide.title || 'Opakování odpovědí'}</h2>
-      <div className="w-32 h-1.5 bg-violet-500 rounded-full" />
+      <div className="w-32 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
+      {slide.title && <h2 className="text-5xl font-bold" style={{ color: accentColor }}>{slide.title}</h2>}
+      <div className="w-32 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
     </div>
   )
 
-  if (slide.type === 'qr_page') return (
-    <div className="flex h-full">
-      {/* Left half — QR code */}
-      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
-        <div className="bg-white p-5 rounded-3xl shadow-2xl">
-          <QRCodeSVG value={START_URL} size={300} level="M" />
+  if (slide.type === 'qr_page') {
+    const hasContent = slide.title || slide.content
+    return (
+      <div className="flex h-full">
+        <div className={`flex flex-col items-center justify-center gap-8 px-20 ${hasContent ? 'w-1/2' : 'w-full'}`}>
+          <div className="bg-white p-6 rounded-3xl shadow-2xl">
+            <QRCodeSVG value={startUrl} size={300} level="M" />
+          </div>
+          <p className="font-mono text-lg text-center" style={{ color: textColor, opacity: 0.45 }}>{startUrl}</p>
         </div>
-        <p className="text-gray-400 text-lg text-center">{START_URL}</p>
+        {hasContent && (
+          <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-20 text-center border-l border-white/[0.08]">
+            {slide.title && <h2 className="text-5xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
+            {slide.content && <p className="text-2xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
+          </div>
+        )}
       </div>
-      {/* Right half — content */}
-      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
-        {slide.title && <h2 className="text-5xl font-black text-white leading-tight">{slide.title}</h2>}
-        {slide.content && <p className="text-2xl text-gray-300 max-w-xl">{slide.content}</p>}
-      </div>
-    </div>
-  )
+    )
+  }
 
   if (!q) return null
 
   const showAnswer = slide.showAnswer || phase >= 1
+  const opts = (q.options || []).map(o => ({
+    text: o.text,
+    correct: o.correct ?? (o as any).isCorrect ?? false,
+  }))
 
   return (
-    <div className="flex flex-col h-full px-20 py-16 gap-10">
-      {/* Question text */}
-      <div className="flex-1 flex items-center justify-center">
-        <h2 className="text-5xl font-bold text-white text-center leading-tight max-w-5xl">{q.text}</h2>
+    <div className="flex flex-col h-full">
+
+      {/* ── Text otázky ── */}
+      <div className="flex-1 flex items-center justify-center px-20 py-10">
+        <h2 className="text-5xl font-bold text-center leading-tight max-w-5xl" style={{ color: textColor }}>
+          {q.text}
+        </h2>
       </div>
 
-      {q.type === 'simple' && showAnswer && (
-        <div className="flex justify-center pb-4">
-          <div className="bg-emerald-500/20 border-2 border-emerald-500/50 rounded-3xl px-12 py-6 text-4xl font-bold text-emerald-300">
-            {q.correct_answer}
+      {/* ── Odpovědi ── */}
+      <div className="px-20 pb-6 shrink-0">
+
+        {q.type === 'simple' && showAnswer && (
+          <div className="flex justify-center pb-4">
+            <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
+              {q.correct_answer}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {(q.type === 'ab' || q.type === 'abcdef') && (
-        <div className="grid grid-cols-2 gap-5 max-w-5xl mx-auto w-full pb-4">
-          {(q.options || []).map((opt, i) => (
-            <div key={i}
-              className={`rounded-2xl px-8 py-5 flex items-center gap-5 transition-all ${
-                showAnswer && opt.correct
-                  ? 'bg-emerald-500/30 border-2 border-emerald-400 scale-105'
-                  : showAnswer && !opt.correct
-                  ? 'bg-white/[0.03] border border-white/[0.06] opacity-30'
-                  : 'bg-white/[0.08] border border-white/[0.12]'
-              }`}>
-              <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-base font-black text-white shrink-0 ${optionColors[i] || 'bg-gray-600'}`}>
-                {optionLetters[i]}
-              </span>
-              <span className="text-2xl font-semibold text-white">{opt.text}</span>
-              {showAnswer && opt.correct && <span className="ml-auto text-emerald-400 text-3xl">✓</span>}
-            </div>
-          ))}
-        </div>
-      )}
+        {q.type === 'abcdef' && opts.length > 0 && (
+          <div className="grid grid-cols-2 gap-5 max-w-5xl mx-auto w-full pb-4">
+            {opts.map((opt, i) => {
+              const col = OPTION_COLORS[i] || OPTION_COLORS[0]
+              return (
+                <div key={i}
+                  className={`rounded-2xl px-8 py-5 flex items-center gap-5 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
+                    showAnswer && opt.correct ? 'scale-[1.02] shadow-lg'
+                    : showAnswer && !opt.correct ? 'opacity-25'
+                    : ''
+                  }`}>
+                  <span className={`w-14 h-14 rounded-xl flex items-center justify-center text-lg font-black text-white shrink-0 ${col.label}`}>
+                    {OPTION_LETTERS[i]}
+                  </span>
+                  <span className="text-2xl font-semibold text-white leading-snug">{opt.text}</span>
+                  {showAnswer && opt.correct && <span className="ml-auto text-white text-3xl font-bold">✓</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-      {q.type === 'bonus' && (
-        <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full pb-4">
-          {(q.options || []).map((opt, i) => (
-            <div key={i}
-              className={`rounded-2xl px-8 py-4 flex items-center gap-5 transition-all duration-500 ${
-                phase > i
-                  ? 'bg-emerald-500/20 border border-emerald-500/40'
-                  : 'bg-white/[0.03] border border-white/[0.05]'
-              }`}>
-              <span className="text-base font-bold text-emerald-400 w-6">{i + 1}.</span>
-              <span className={`text-2xl font-semibold transition-colors duration-500 ${phase > i ? 'text-white' : 'text-transparent'}`}>
-                {opt.text}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+        {q.type === 'bonus' && (
+          <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full pb-4">
+            {opts.map((opt, i) => (
+              <div key={i} className="rounded-2xl px-8 py-4 flex items-center gap-6 border transition-all duration-500"
+                style={phase > i
+                  ? { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.25)' }
+                  : { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                <span className="text-xl font-black w-8 shrink-0" style={{ color: phase > i ? textColor : 'rgba(255,255,255,0.2)' }}>
+                  {i + 1}.
+                </span>
+                <span className="text-2xl font-semibold transition-colors duration-500" style={{ color: phase > i ? textColor : 'transparent' }}>
+                  {opt.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {q.type === 'audio' && (
-        <div className="flex flex-col items-center gap-8 pb-4">
-          {phase >= 1 && (
-            <div className="flex flex-col items-center gap-4">
-              <Volume2 size={64} className="text-violet-400 animate-pulse" />
-              <audio ref={audioRef} controls src={q.media_url || ''} className="w-96" />
-            </div>
-          )}
-          {phase >= 2 && (
-            <div className="bg-emerald-500/20 border-2 border-emerald-500/50 rounded-3xl px-12 py-6 text-4xl font-bold text-emerald-300">
-              {q.correct_answer}
-            </div>
-          )}
-        </div>
-      )}
+        {q.type === 'audio' && (
+          <div className="flex flex-col items-center gap-8 pb-4">
+            {phase >= 1 && (
+              <div className="flex flex-col items-center gap-4">
+                <Volume2 size={72} className="text-cyan-400 animate-pulse" />
+                <audio ref={audioRef} controls src={q.media_url || ''} className="w-[500px]" />
+              </div>
+            )}
+            {phase >= 2 && (
+              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
 
-      {q.type === 'video' && (
-        <div className="flex flex-col items-center gap-6 pb-4">
-          {phase === 0 && q.media_url && (
-            <div className="flex items-center gap-3 text-gray-400 text-xl">
-              <Video size={36} className="text-violet-400" />
-            </div>
-          )}
-          {phase >= 1 && q.media_url && (
-            <video src={q.media_url} controls autoPlay className="max-h-80 rounded-2xl border border-white/10" />
-          )}
-          {phase >= 2 && (
-            <div className="bg-emerald-500/20 border-2 border-emerald-500/50 rounded-3xl px-12 py-6 text-4xl font-bold text-emerald-300">
-              {q.correct_answer}
-            </div>
-          )}
+        {q.type === 'video' && (
+          <div className="flex flex-col items-center gap-6 pb-4">
+            {phase >= 1 && q.media_url && (
+              <video src={q.media_url} controls autoPlay className="max-h-80 rounded-2xl border border-white/10" />
+            )}
+            {phase >= 2 && (
+              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
+
+        {q.type === 'image' && (
+          <div className="flex flex-col items-center gap-6 pb-4">
+            {q.media_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={q.media_url} alt="" className="max-h-72 rounded-2xl object-contain" />
+            )}
+            {showAnswer && q.correct_answer && (
+              <div className="rounded-3xl px-14 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Spodní lišta — číslo kola ── */}
+      {roundNumber !== undefined && (
+        <div className="flex items-center justify-center pb-8 shrink-0">
+          <span className="text-5xl font-black tracking-tight" style={{ color: textColor, opacity: 0.3 }}>
+            {roundNumber}. kolo
+          </span>
         </div>
       )}
     </div>
   )
 }
+
+// ─── Hlavní komponenta ────────────────────────────────────────────────────────
 
 export default function WatchPage() {
   const params = useParams()
@@ -219,19 +348,22 @@ export default function WatchPage() {
   const [slideIndex, setSlideIndex] = useState(0)
   const [phase, setPhase] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [active, setActive] = useState(false)   // true = moderátor aktivoval kvíz
+  const [active, setActive] = useState(false)
+  const [tmpl, setTmpl] = useState<TemplateConfig | null>(null)
 
-  const watchUrl = typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.host}/watch/${quizId}`
-    : `https://kviz.michaljanda.com/watch/${quizId}`
-
-  // Load quiz data once
+  // Load quiz + template
   useEffect(() => {
     fetch(`/api/quizzes/${quizId}`)
       .then(r => r.json())
       .then((data: QuizData) => {
         setQuiz(data)
         setSlides(buildSlides(data))
+        if (data.template_id) {
+          fetch(`/api/templates/${data.template_id}`)
+            .then(r => r.json())
+            .then(t => { if (t.config) setTmpl(t.config) })
+            .catch(() => {})
+        }
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -261,7 +393,6 @@ export default function WatchPage() {
     </div>
   )
 
-  // Waiting screen — shown when moderator hasn't started yet
   if (!active || slides.length === 0) return (
     <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white">
       <div className="text-center space-y-3">
@@ -275,12 +406,17 @@ export default function WatchPage() {
     </div>
   )
 
-  const slide = slides[Math.min(slideIndex, slides.length - 1)]
+  const safeIdx = Math.min(slideIndex, slides.length - 1)
+  const slide = slides[safeIdx]
+  const bg = slideBackground(slide, tmpl)
+  const hasBg = Object.keys(bg).length > 0
+  const fontFamily = tmpl?.fontFamily || undefined
 
   return (
-    <div className="min-h-screen bg-[#08090f] text-white flex flex-col overflow-hidden">
-      <div className="flex-1">
-        <SlideView slide={slide} phase={phase} />
+    <div className="h-screen flex flex-col overflow-hidden select-none"
+      style={{ fontFamily, ...(hasBg ? bg : { background: '#08090f' }) }}>
+      <div className="flex-1 overflow-hidden">
+        <SlideView slide={slide} phase={phase} tmpl={tmpl} slideIdx={safeIdx} slides={slides} />
       </div>
     </div>
   )

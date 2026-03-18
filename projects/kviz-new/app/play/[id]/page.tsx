@@ -49,6 +49,7 @@ interface TemplateConfig {
   questionTypes?: Record<string, BgCfg>
   separator?: BgCfg
   qrPage?: BgCfg
+  roundStart?: BgCfg
   pages?: Array<{ id: string; name?: string } & BgCfg>
 }
 
@@ -80,8 +81,9 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
     return bgStyle(tmpl.separator)
   if (slide.type === 'qr_page')
     return bgStyle(tmpl.qrPage)
+  if (slide.type === 'round_start')
+    return bgStyle(tmpl.roundStart as BgCfg | undefined)
   if (slide.type === 'page') {
-    // Hledáme konkrétní stránku ze šablony podle templatePageId, jinak první
     const page = slide.templatePageId
       ? tmpl.pages?.find(p => p.id === slide.templatePageId)
       : tmpl.pages?.[0]
@@ -231,6 +233,37 @@ function SlideThumbnail({ slide, idx, isCurrent, tmpl, onClick }: {
   )
 }
 
+// ─── Slide info (round + question position) ───────────────────────────────────
+
+function computeSlideInfo(slides: Slide[], idx: number) {
+  let roundNumber: number | undefined
+  let questionInRound: number | undefined
+  let totalInRound: number | undefined
+
+  // Find most recent round_start (don't cross a separator)
+  let roundStartIdx = -1
+  for (let i = idx - 1; i >= 0; i--) {
+    if (slides[i].type === 'round_start') { roundStartIdx = i; roundNumber = slides[i].roundNumber; break }
+    if (slides[i].type === 'separator') break
+  }
+
+  // Count question position within round (only for non-answer slides)
+  if (roundStartIdx >= 0 && slides[idx]?.type === 'question' && !slides[idx].showAnswer) {
+    let pos = 0, total = 0
+    for (let i = roundStartIdx + 1; i < slides.length; i++) {
+      if (slides[i].type === 'round_start' || slides[i].type === 'separator') break
+      if (slides[i].type === 'question' && !slides[i].showAnswer) {
+        total++
+        if (i <= idx) pos = total
+      }
+    }
+    questionInRound = pos
+    totalInRound = total
+  }
+
+  return { roundNumber, questionInRound, totalInRound }
+}
+
 // ─── Renderers ────────────────────────────────────────────────────────────────
 
 // Stránka ze šablony — zobrazí jen pozadí (obrázek), bez textového obsahu
@@ -265,7 +298,9 @@ function SeparatorSlide({ slide, textColor, accentColor }: { slide: Slide; textC
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6">
       <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
-      <h2 className="text-4xl font-bold" style={{ color: accentColor }}>{slide.title || 'Opakování odpovědí'}</h2>
+      {slide.title && (
+        <h2 className="text-4xl font-bold" style={{ color: accentColor }}>{slide.title}</h2>
+      )}
       <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
     </div>
   )
@@ -281,8 +316,9 @@ const OPTION_COLORS = [
 ]
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-function QuestionSlide({ slide, phase, textColor, correctColor }: {
+function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, questionInRound, totalInRound }: {
   slide: Slide; phase: number; textColor: string; correctColor: string
+  roundNumber?: number; questionInRound?: number; totalInRound?: number
 }) {
   const q = slide.question!
   const showAnswer = slide.showAnswer || phase >= 1
@@ -300,115 +336,135 @@ function QuestionSlide({ slide, phase, textColor, correctColor }: {
   }))
 
   return (
-    <div className="flex flex-col h-full px-12 py-10 gap-8">
-      <div className="flex-1 flex items-center justify-center">
+    <div className="flex flex-col h-full">
+
+      {/* ── Horní lišta — číslo otázky v kole ── */}
+      {questionInRound && (
+        <div className="flex items-center justify-center pt-8 pb-2 shrink-0">
+          <span className="text-2xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
+            {questionInRound}{totalInRound ? `\u00a0/\u00a0${totalInRound}` : ''}
+          </span>
+        </div>
+      )}
+
+      {/* ── Text otázky ── */}
+      <div className="flex-1 flex items-center justify-center px-12">
         <h2 className="text-4xl font-bold text-center leading-tight max-w-4xl" style={{ color: textColor }}>
           {q.text}
         </h2>
       </div>
 
-      {/* simple */}
-      {q.type === 'simple' && showAnswer && (
-        <div className="flex justify-center">
-          <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
-            style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
-            {q.correct_answer}
+      {/* ── Odpovědi / možnosti ── */}
+      <div className="px-12 pb-4 shrink-0">
+
+        {/* simple */}
+        {q.type === 'simple' && showAnswer && (
+          <div className="flex justify-center">
+            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+              {q.correct_answer}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* abcdef / ab */}
-      {(q.type === 'ab' || q.type === 'abcdef') && opts.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full">
-          {opts.map((opt, i) => {
-            const col = OPTION_COLORS[i] || OPTION_COLORS[0]
-            return (
-              <div key={i}
-                className={`rounded-2xl px-5 py-4 flex items-center gap-4 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
-                  showAnswer && opt.correct ? 'scale-[1.02] shadow-lg' : showAnswer && !opt.correct ? 'opacity-30' : ''
-                }`}>
-                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0 ${col.label}`}>
-                  {OPTION_LETTERS[i]}
+        {/* abcdef */}
+        {q.type === 'abcdef' && opts.length > 0 && (
+          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full">
+            {opts.map((opt, i) => {
+              const col = OPTION_COLORS[i] || OPTION_COLORS[0]
+              return (
+                <div key={i}
+                  className={`rounded-2xl px-5 py-4 flex items-center gap-4 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
+                    showAnswer && opt.correct ? 'scale-[1.02] shadow-lg' : showAnswer && !opt.correct ? 'opacity-30' : ''
+                  }`}>
+                  <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0 ${col.label}`}>
+                    {OPTION_LETTERS[i]}
+                  </span>
+                  <span className="text-lg font-semibold text-white leading-snug">{opt.text}</span>
+                  {showAnswer && opt.correct && <span className="ml-auto text-white text-2xl font-bold">✓</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* bonus */}
+        {q.type === 'bonus' && (
+          <div className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
+            {opts.map((opt, i) => (
+              <div key={i} className="rounded-xl px-6 py-3.5 flex items-center gap-4 border transition-all duration-300"
+                style={phase > i
+                  ? { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.25)' }
+                  : { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <span className="text-sm font-black w-6 shrink-0" style={{ color: phase > i ? textColor : 'rgba(255,255,255,0.3)' }}>
+                  {i + 1}.
                 </span>
-                <span className="text-lg font-semibold text-white leading-snug">{opt.text}</span>
-                {showAnswer && opt.correct && <span className="ml-auto text-white text-2xl font-bold">✓</span>}
+                <span className="text-xl font-semibold transition-all" style={{ color: phase > i ? textColor : 'transparent' }}>
+                  {opt.text}
+                </span>
               </div>
-            )
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* bonus */}
-      {q.type === 'bonus' && (
-        <div className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
-          {opts.map((opt, i) => (
-            <div key={i} className="rounded-xl px-6 py-3.5 flex items-center gap-4 border-2 transition-all duration-300"
-              style={phase > i
-                ? { backgroundColor: correctColor + '22', borderColor: correctColor }
-                : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
-              <span className="text-sm font-black w-6 shrink-0" style={{ color: phase > i ? correctColor : 'rgba(255,255,255,0.3)' }}>
-                {i + 1}.
-              </span>
-              <span className="text-xl font-semibold transition-all" style={{ color: phase > i ? textColor : 'transparent' }}>
-                {opt.text}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+        {/* audio */}
+        {q.type === 'audio' && (
+          <div className="flex flex-col items-center gap-6">
+            {phase >= 1 && (
+              <div className="flex flex-col items-center gap-3">
+                <Volume2 size={48} className="text-cyan-400 animate-pulse" />
+                <audio ref={audioRef} controls src={q.media_url || ''} className="w-80" />
+              </div>
+            )}
+            {phase >= 2 && (
+              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
 
-      {/* audio */}
-      {q.type === 'audio' && (
-        <div className="flex flex-col items-center gap-6">
-          {phase >= 1 && (
-            <div className="flex flex-col items-center gap-3">
-              <Volume2 size={48} className="text-cyan-400 animate-pulse" />
-              <audio ref={audioRef} controls src={q.media_url || ''} className="w-80" />
-            </div>
-          )}
-          {phase >= 2 && (
-            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
-              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
-              {q.correct_answer}
-            </div>
-          )}
-        </div>
-      )}
+        {/* video */}
+        {q.type === 'video' && (
+          <div className="flex flex-col items-center gap-6">
+            {phase === 0 && q.media_url && (
+              <div className="flex items-center gap-3" style={{ color: textColor, opacity: 0.5 }}>
+                <Video size={28} className="text-pink-400" />
+                <span className="truncate max-w-md font-mono text-sm">{q.media_url}</span>
+              </div>
+            )}
+            {phase >= 1 && q.media_url && (
+              <video src={q.media_url} controls autoPlay className="max-h-56 rounded-xl border border-white/10" />
+            )}
+            {phase >= 2 && (
+              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
 
-      {/* video */}
-      {q.type === 'video' && (
-        <div className="flex flex-col items-center gap-6">
-          {phase === 0 && q.media_url && (
-            <div className="flex items-center gap-3" style={{ color: textColor, opacity: 0.5 }}>
-              <Video size={28} className="text-pink-400" />
-              <span className="truncate max-w-md font-mono text-sm">{q.media_url}</span>
-            </div>
-          )}
-          {phase >= 1 && q.media_url && (
-            <video src={q.media_url} controls autoPlay className="max-h-64 rounded-xl border border-white/10" />
-          )}
-          {phase >= 2 && (
-            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
-              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
-              {q.correct_answer}
-            </div>
-          )}
-        </div>
-      )}
+        {/* image */}
+        {q.type === 'image' && (
+          <div className="flex flex-col items-center gap-4">
+            {q.media_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={q.media_url} alt="" className="max-h-56 rounded-xl object-contain" />
+            )}
+            {showAnswer && q.correct_answer && (
+              <div className="rounded-2xl px-10 py-4 text-2xl font-bold border border-white/25" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* image */}
-      {q.type === 'image' && (
-        <div className="flex flex-col items-center gap-4">
-          {q.media_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={q.media_url} alt="" className="max-h-64 rounded-xl object-contain" />
-          )}
-          {showAnswer && q.correct_answer && (
-            <div className="rounded-2xl px-10 py-4 text-2xl font-bold border-2"
-              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
-              {q.correct_answer}
-            </div>
-          )}
+      {/* ── Spodní lišta — číslo kola ── */}
+      {roundNumber !== undefined && (
+        <div className="flex items-center justify-center pb-6 pt-2 shrink-0">
+          <span className="text-4xl font-black tracking-tight" style={{ color: textColor, opacity: 0.35 }}>
+            {roundNumber}. kolo
+          </span>
         </div>
       )}
     </div>
@@ -419,21 +475,21 @@ function QrPageSlide({ slide, textColor }: { slide: Slide; textColor: string }) 
   const startUrl = typeof window !== 'undefined'
     ? `${window.location.protocol}//${window.location.host}/start`
     : 'https://kviz.michaljanda.com/start'
+  const hasContent = slide.title || slide.content
   return (
     <div className="flex h-full">
-      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
+      <div className={`flex flex-col items-center justify-center gap-6 px-16 ${hasContent ? 'w-1/2' : 'w-full'}`}>
         <div className="bg-white p-5 rounded-3xl shadow-2xl">
           <QRCodeSVG value={startUrl} size={260} level="M" />
         </div>
         <p className="text-sm text-center font-mono" style={{ color: textColor, opacity: 0.5 }}>{startUrl}</p>
       </div>
-      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/10">
-        {slide.title && <h2 className="text-4xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
-        {slide.content && <p className="text-xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
-        {!slide.title && !slide.content && (
-          <p className="text-lg" style={{ color: textColor, opacity: 0.4 }}>Naskenuj QR kód a sleduj kvíz na telefonu</p>
-        )}
-      </div>
+      {hasContent && (
+        <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/10">
+          {slide.title && <h2 className="text-4xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
+          {slide.content && <p className="text-xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
+        </div>
+      )}
     </div>
   )
 }
@@ -569,7 +625,7 @@ export default function PlayPage() {
   const currentBg = slideBackground(slide, tmpl)
   const hasBg = Object.keys(currentBg).length > 0
 
-  // Zjistíme číslo kola pro stránky (round_start před touto stránkou)
+  // Číslo kola pro stránky (round_start před touto stránkou)
   let roundLabel: string | undefined
   for (let i = slideIndex - 1; i >= 0; i--) {
     if (slides[i].type === 'round_start') {
@@ -578,6 +634,9 @@ export default function PlayPage() {
     }
     if (slides[i].type === 'separator') break
   }
+
+  // Round/question info pro otázky
+  const { roundNumber, questionInRound, totalInRound } = computeSlideInfo(slides, slideIndex)
 
   const centerLabel = phase < maxPhase
     ? (slide.question?.type === 'bonus' ? `Odhal #${phase + 1}` : 'Zobrazit odpověď')
@@ -648,41 +707,44 @@ export default function PlayPage() {
           {slide.type === 'page' && <PageSlide slide={slide} textColor={textColor} roundLabel={roundLabel} />}
           {slide.type === 'round_start' && <RoundStartSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
           {slide.type === 'separator' && <SeparatorSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
-          {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} textColor={textColor} correctColor={correctColor} />}
+          {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} textColor={textColor} correctColor={correctColor} roundNumber={roundNumber} questionInRound={questionInRound} totalInRound={totalInRound} />}
           {slide.type === 'qr_page' && <QrPageSlide slide={slide} textColor={textColor} />}
         </div>
 
-        {/* ── Spodní ovládání — kulatá barevná tlačítka ── */}
-        <div className="flex items-center justify-center gap-4 px-8 py-5 shrink-0"
+        {/* ── Spodní ovládání ── */}
+        <div className="flex items-center px-0 py-4 shrink-0 relative"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 100%)', backdropFilter: 'blur(8px)' }}>
 
-          {/* Restart — modrá */}
-          <button onClick={goToStart} title="Začít znovu (Home)"
-            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all">
+          {/* Restart — modrá, krajní levá */}
+          <button onClick={goToStart} title="Začít znovu"
+            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all shrink-0 ml-0">
             <RotateCcw size={22} className="text-white" />
           </button>
 
-          {/* Zpět — oranžová */}
-          <button onClick={handleBack} disabled={!canGoBack} title="Zpět (←)"
-            className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all">
-            <ChevronLeft size={28} className="text-white" />
-          </button>
+          {/* Střed: Zpět + Hlavní akce + Přeskočit */}
+          <div className="flex items-center justify-center gap-5 flex-1">
+            {/* Zpět — oranžová */}
+            <button onClick={handleBack} disabled={!canGoBack} title="Zpět (←)"
+              className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all">
+              <ChevronLeft size={28} className="text-white" />
+            </button>
 
-          {/* Hlavní akce — modrá pill */}
-          <button onClick={handleForward} disabled={!canGoForward}
-            className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
-            {centerLabel}
-          </button>
+            {/* Hlavní akce — modrá pill */}
+            <button onClick={handleForward} disabled={!canGoForward}
+              className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
+              {centerLabel}
+            </button>
 
-          {/* Přeskočit — zelená */}
-          <button onClick={handleSkipForward} disabled={!canSkip} title="Přeskočit (→)"
-            className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all">
-            <ChevronRight size={28} className="text-white" />
-          </button>
+            {/* Přeskočit — zelená */}
+            <button onClick={handleSkipForward} disabled={!canSkip} title="Přeskočit (→)"
+              className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all">
+              <ChevronRight size={28} className="text-white" />
+            </button>
+          </div>
 
-          {/* Zavřít — červená */}
+          {/* Zavřít — červená, krajní pravá */}
           <button onClick={handleClose} title="Zavřít (Esc)"
-            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center shadow-xl shadow-red-500/30 transition-all">
+            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center shadow-xl shadow-red-500/30 transition-all shrink-0 mr-0">
             <X size={22} className="text-white" />
           </button>
         </div>
