@@ -430,6 +430,16 @@ export const quizzes = {
 
   delete: (id: string) => db.prepare('DELETE FROM quizzes WHERE id = ?').run(id),
 
+  getPlayerState: (id: string) => {
+    const row = db.prepare('SELECT player_state FROM quizzes WHERE id = ?').get(id) as { player_state: string | null } | undefined
+    if (!row) return null
+    try { return row.player_state ? JSON.parse(row.player_state) : null } catch { return null }
+  },
+
+  setPlayerState: (id: string, state: { slideIndex: number; phase: number }) => {
+    db.prepare('UPDATE quizzes SET player_state = ? WHERE id = ?').run(JSON.stringify(state), id)
+  },
+
   addQuestion: (quizId: string, questionId: string, orderIndex: number, roundNumber = 1) => {
     db.prepare(`
       INSERT OR REPLACE INTO quiz_questions (quiz_id, question_id, order_index, round_number)
@@ -524,6 +534,15 @@ function migrateTemplatesConfig() {
   console.log('Migration 3: templates.config column added')
 }
 
+function migrateQuizPlayerState() {
+  const info = db.prepare(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='quizzes'"
+  ).get() as { sql: string } | undefined
+  if (!info || info.sql.includes('player_state')) return
+  db.exec('ALTER TABLE quizzes ADD COLUMN player_state TEXT')
+  console.log('Migration 4: quizzes.player_state column added')
+}
+
 // ---------------------------------------------------------------------------
 // Boot — init + migrate
 // ---------------------------------------------------------------------------
@@ -531,5 +550,6 @@ initDatabase()
 migrateQuestionsSchema()
 migrateToTagsSystem()
 migrateTemplatesConfig()
+migrateQuizPlayerState()
 
 export default db

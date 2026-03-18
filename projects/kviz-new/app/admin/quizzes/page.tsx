@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive } from "lucide-react"
+import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive, Eye } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
 interface Quiz {
@@ -166,12 +166,16 @@ export default function QuizzesPage() {
                       <div className="text-xs text-gray-500">{formatDate(q.created_at)}</div>
                       {/* Actions */}
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => window.open(`/quiz/${q.id}`, "_blank")}
-                          className="p-2 rounded-lg text-gray-500 hover:bg-emerald-500/15 hover:text-emerald-300 transition-colors" title="Spustit">
+                        <button onClick={() => window.open(`/play/${q.id}`, "_blank")}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-emerald-500/15 hover:text-emerald-300 transition-colors" title="Spustit přehrávač">
                           <Play size={14} />
                         </button>
-                        <button onClick={() => router.push(`/admin/quizzes/${q.id}`)}
-                          className="p-2 rounded-lg text-gray-500 hover:bg-violet-500/15 hover:text-violet-300 transition-colors" title="Upravit">
+                        <button onClick={() => window.open(`/watch/${q.id}`, "_blank")}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-violet-500/15 hover:text-violet-300 transition-colors" title="Divák (veřejný pohled)">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => router.push(`/admin/quizzes/new?id=${q.id}`)}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-blue-500/15 hover:text-blue-300 transition-colors" title="Upravit">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => handleDelete(q.id, q.name)} disabled={deletingId === q.id}
