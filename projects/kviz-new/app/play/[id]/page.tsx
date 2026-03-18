@@ -3,7 +3,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music, ImageIcon, Layers, AlignLeft, QrCode, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import {
+  ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music,
+  ImageIcon, Layers, AlignLeft, QrCode, PanelLeftClose, PanelLeftOpen,
+  RotateCcw
+} from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
 // ─── Typy ─────────────────────────────────────────────────────────────────────
@@ -21,24 +25,31 @@ interface QuestionData {
 
 type SlideType = 'page' | 'round_start' | 'question' | 'separator' | 'qr_page'
 
+interface BgCfg {
+  bgType?: string; bg1?: string; bg2?: string; bgImage?: string
+}
+
 interface Slide {
   type: SlideType
   title?: string
   content?: string
   subtitle?: string
   roundNumber?: number
+  templatePageId?: string   // pro správné pozadí stránky ze šablony
   question?: QuestionData
-  showAnswer?: boolean
+  showAnswer?: boolean      // slide z opakování po oddělovači — okamžitě zobrazit
+  noAnswerPhase?: boolean   // otázka před oddělovačem — přeskočit fázi zobrazení odpovědi
 }
 
 interface TemplateConfig {
   textColor?: string
   accentColor?: string
+  correctColor?: string
   fontFamily?: string
-  questionTypes?: Record<string, { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
-  separator?: { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }
-  qrPage?: { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }
-  pages?: Array<{ id: string; bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
+  questionTypes?: Record<string, BgCfg>
+  separator?: BgCfg
+  qrPage?: BgCfg
+  pages?: Array<{ id: string; name?: string } & BgCfg>
 }
 
 interface QuizData {
@@ -49,27 +60,45 @@ interface QuizData {
   template_id?: string
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Background helper ────────────────────────────────────────────────────────
 
-function bgFromConfig(cfg: TemplateConfig | null, qType?: string, slideType?: string): React.CSSProperties {
+function bgStyle(cfg: BgCfg | undefined | null): React.CSSProperties {
   if (!cfg) return {}
-  let bg: any = null
-  if (slideType === 'separator' && cfg.separator) bg = cfg.separator
-  else if (slideType === 'qr_page' && cfg.qrPage) bg = cfg.qrPage
-  else if (qType && cfg.questionTypes?.[qType]) bg = cfg.questionTypes[qType]
-  if (!bg) return {}
-  if (bg.bgType === 'gradient' && bg.bg1 && bg.bg2)
-    return { background: `linear-gradient(135deg, ${bg.bg1}, ${bg.bg2})` }
-  if (bg.bgType === 'image' && bg.bgImage)
-    return { background: `url(${bg.bgImage}) center/cover` }
-  if (bg.bg1) return { backgroundColor: bg.bg1 }
+  if (cfg.bgType === 'gradient' && cfg.bg1 && cfg.bg2)
+    return { background: `linear-gradient(135deg, ${cfg.bg1}, ${cfg.bg2})` }
+  if (cfg.bgType === 'image' && cfg.bgImage)
+    return { backgroundImage: `url(${cfg.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+  if (cfg.bg1) return { backgroundColor: cfg.bg1 }
   return {}
 }
+
+function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSProperties {
+  if (!tmpl) return {}
+  if (slide.type === 'question' && slide.question)
+    return bgStyle(tmpl.questionTypes?.[slide.question.type])
+  if (slide.type === 'separator')
+    return bgStyle(tmpl.separator)
+  if (slide.type === 'qr_page')
+    return bgStyle(tmpl.qrPage)
+  if (slide.type === 'page') {
+    // Hledáme konkrétní stránku ze šablony podle templatePageId, jinak první
+    const page = slide.templatePageId
+      ? tmpl.pages?.find(p => p.id === slide.templatePageId)
+      : tmpl.pages?.[0]
+    return bgStyle(page)
+  }
+  return {}
+}
+
+// ─── Stavba slidů ─────────────────────────────────────────────────────────────
 
 function buildSlides(quiz: QuizData): Slide[] {
   if (!quiz.sequence || quiz.sequence.length === 0) {
     return quiz.questions.map(q => ({ type: 'question' as SlideType, question: q }))
   }
+
+  // Zjistíme, zda je v sekvenci oddělovač — pokud ano, otázky před ním nemají fázi zobrazení odpovědi
+  const hasSeparator = quiz.sequence.some(item => item.type === 'separator')
 
   const qMap = new Map(quiz.questions.map(q => [q.id, q]))
   const slides: Slide[] = []
@@ -77,48 +106,61 @@ function buildSlides(quiz: QuizData): Slide[] {
   for (const item of quiz.sequence) {
     if (item.type === 'question') {
       const q = qMap.get(item.questionId)
-      if (q) slides.push({ type: 'question', question: q })
+      if (q) slides.push({
+        type: 'question',
+        question: q,
+        noAnswerPhase: hasSeparator,   // přeskočíme odpověď — přijde po oddělovači
+      })
     } else if (item.type === 'separator') {
       slides.push({ type: 'separator', title: item.title || 'Opakování odpovědí' })
+      // Přidáme opakování otázek s okamžitě zobrazenou odpovědí
       const prevQuestions = slides
         .filter(s => s.type === 'question' && !s.showAnswer)
-        .map(s => ({ type: 'question' as SlideType, question: s.question!, showAnswer: true }))
+        .map(s => ({
+          type: 'question' as SlideType,
+          question: s.question!,
+          showAnswer: true,
+          noAnswerPhase: false,
+        }))
       slides.push(...prevQuestions)
     } else if (item.type === 'round_start') {
       slides.push({ type: 'round_start', title: item.title, subtitle: item.subtitle, roundNumber: item.roundNumber })
     } else if (item.type === 'qr_page') {
       slides.push({ type: 'qr_page', title: item.title, content: item.content })
     } else if (item.type === 'page') {
-      slides.push({ type: 'page', title: item.title, content: item.content })
+      slides.push({ type: 'page', title: item.title, content: item.content, templatePageId: item.templatePageId })
     } else {
       slides.push(item as Slide)
     }
   }
-
   return slides
 }
 
+// ─── Fáze slidů ───────────────────────────────────────────────────────────────
+
 function getMaxPhase(slide: Slide): number {
   if (!slide.question) return 0
+  if (slide.showAnswer) return 0        // opakování po oddělovači — odpověď ihned, bez fází
   const q = slide.question
   if (q.type === 'bonus') return (q.options?.length ?? 0)
   if (q.type === 'audio') return 2
   if (q.type === 'video') return 2
-  return 1
+  if (slide.noAnswerPhase) return 0     // otázka s oddělovačem — přejdi rovnou na další
+  return 1                              // otázka bez oddělovače — zobraz odpověď ve fázi
 }
 
-// ─── Slide icon for sidebar ───────────────────────────────────────────────────
+// ─── Ikona a popis slidů (sidebar) ───────────────────────────────────────────
 
-function slideIcon(slide: Slide) {
-  if (slide.type === 'separator') return <Layers size={12} />
-  if (slide.type === 'qr_page') return <QrCode size={12} />
-  if (slide.type === 'round_start') return <Layers size={12} className="text-violet-400" />
-  if (!slide.question) return <AlignLeft size={12} />
+function slideIcon(slide: Slide, size = 13) {
+  if (slide.type === 'separator') return <Layers size={size} />
+  if (slide.type === 'qr_page') return <QrCode size={size} />
+  if (slide.type === 'round_start') return <Layers size={size} className="text-violet-400" />
+  if (!slide.question) return <AlignLeft size={size} />
   const t = slide.question.type
-  if (t === 'audio') return <Music size={12} className="text-cyan-400" />
-  if (t === 'video') return <Video size={12} className="text-pink-400" />
-  if (t === 'image') return <ImageIcon size={12} className="text-rose-400" />
-  return <AlignLeft size={12} />
+  if (t === 'audio') return <Music size={size} className="text-cyan-400" />
+  if (t === 'video') return <Video size={size} className="text-pink-400" />
+  if (t === 'image') return <ImageIcon size={size} className="text-rose-400" />
+  return <AlignLeft size={size} />
 }
 
 function slideLabel(slide: Slide, idx: number): string {
@@ -130,50 +172,118 @@ function slideLabel(slide: Slide, idx: number): string {
   return `Slide ${idx + 1}`
 }
 
-// ─── Slide renderers ──────────────────────────────────────────────────────────
+// ─── Thumbnail (mini náhled) ──────────────────────────────────────────────────
 
-function PageSlide({ slide }: { slide: Slide }) {
+function SlideThumbnail({ slide, idx, isCurrent, tmpl, onClick }: {
+  slide: Slide; idx: number; isCurrent: boolean; tmpl: TemplateConfig | null; onClick: () => void
+}) {
+  const bg = slideBackground(slide, tmpl)
+  const hasImage = bg.backgroundImage
+  const defaultBg = slide.type === 'separator' ? '#1a0a30'
+    : slide.type === 'qr_page' ? '#0d1428'
+    : slide.type === 'round_start' ? '#1a0f40'
+    : '#12141f'
+
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-16 gap-6">
-      {slide.title && <h1 className="text-5xl font-black text-white leading-tight">{slide.title}</h1>}
-      {slide.content && <p className="text-2xl text-gray-300 max-w-3xl">{slide.content}</p>}
+    <button onClick={onClick}
+      className={`w-full text-left flex items-start gap-2.5 px-2.5 py-2 transition-all ${
+        isCurrent ? 'bg-white/10' : 'hover:bg-white/[0.05]'
+      }`}>
+      {/* Number badge */}
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ${
+        isCurrent ? 'bg-amber-500 text-white' : 'bg-white/15 text-white/50'
+      }`}>{idx + 1}</div>
+
+      <div className="flex-1 min-w-0">
+        {/* Mini preview box */}
+        <div className="w-full rounded-md overflow-hidden relative"
+          style={{
+            aspectRatio: '16/10',
+            border: isCurrent ? '2px solid rgb(245,158,11)' : '2px solid rgba(255,255,255,0.08)',
+            backgroundColor: (bg.backgroundColor as string) || defaultBg,
+            ...(hasImage ? bg : {}),
+          }}>
+          {/* Text overlay on images */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 p-1.5 bg-black/20">
+            <div className="text-white/80 drop-shadow">{slideIcon(slide, 12)}</div>
+            {slide.type === 'question' && slide.question && (
+              <p className="text-white text-[7px] leading-tight line-clamp-3 text-center font-medium drop-shadow-lg px-1">
+                {slide.question.text}
+              </p>
+            )}
+            {(slide.type === 'page') && slide.title && (
+              <p className="text-white text-[8px] leading-tight line-clamp-2 text-center font-bold drop-shadow-lg">
+                {slide.title}
+              </p>
+            )}
+          </div>
+          {slide.showAnswer && (
+            <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          )}
+        </div>
+        <p className={`text-[10px] mt-0.5 leading-tight truncate ${
+          isCurrent ? 'text-amber-400 font-semibold' : 'text-white/30'
+        }`}>
+          {slide.showAnswer ? '↩ ' + (slide.question?.text || '').substring(0, 25) : slideLabel(slide, idx).substring(0, 28)}
+        </p>
+      </div>
+    </button>
+  )
+}
+
+// ─── Renderers ────────────────────────────────────────────────────────────────
+
+// Stránka ze šablony — zobrazí jen pozadí (obrázek), bez textového obsahu
+function PageSlide({ slide, textColor, roundLabel }: { slide: Slide; textColor: string; roundLabel?: string }) {
+  return (
+    <div className="relative h-full w-full">
+      {/* Stránka zobrazuje pouze pozadí (logo, text jsou součástí obrázku pozadí) */}
+      {roundLabel && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
+          <span className="text-sm font-medium tracking-wide" style={{ color: textColor, opacity: 0.45 }}>
+            {roundLabel}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
 
-function RoundStartSlide({ slide }: { slide: Slide }) {
+function RoundStartSlide({ slide, textColor, accentColor }: { slide: Slide; textColor: string; accentColor: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-      <div className="text-violet-400 text-xl font-bold tracking-widest uppercase">
+      <div className="text-xl font-bold tracking-widest uppercase" style={{ color: accentColor }}>
         Kolo {slide.roundNumber}
       </div>
-      <h1 className="text-6xl font-black text-white">{slide.title || `Kolo ${slide.roundNumber}`}</h1>
-      {slide.subtitle && <p className="text-2xl text-gray-400 mt-2">{slide.subtitle}</p>}
+      <h1 className="text-6xl font-black" style={{ color: textColor }}>{slide.title || `Kolo ${slide.roundNumber}`}</h1>
+      {slide.subtitle && <p className="text-2xl mt-2" style={{ color: textColor, opacity: 0.7 }}>{slide.subtitle}</p>}
     </div>
   )
 }
 
-function SeparatorSlide({ slide }: { slide: Slide }) {
+function SeparatorSlide({ slide, textColor, accentColor }: { slide: Slide; textColor: string; accentColor: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6">
-      <div className="w-24 h-1 bg-violet-500 rounded-full" />
-      <h2 className="text-4xl font-bold text-violet-300">{slide.title || 'Opakování odpovědí'}</h2>
-      <div className="w-24 h-1 bg-violet-500 rounded-full" />
+      <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
+      <h2 className="text-4xl font-bold" style={{ color: accentColor }}>{slide.title || 'Opakování odpovědí'}</h2>
+      <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
     </div>
   )
 }
 
 const OPTION_COLORS = [
-  'bg-blue-600 border-blue-500',
-  'bg-emerald-600 border-emerald-500',
-  'bg-amber-600 border-amber-500',
-  'bg-red-600 border-red-500',
-  'bg-violet-600 border-violet-500',
-  'bg-pink-600 border-pink-500',
+  { bg: 'bg-blue-600',    border: 'border-blue-500',    label: 'bg-blue-700' },
+  { bg: 'bg-emerald-600', border: 'border-emerald-500', label: 'bg-emerald-700' },
+  { bg: 'bg-amber-500',   border: 'border-amber-400',   label: 'bg-amber-600' },
+  { bg: 'bg-red-600',     border: 'border-red-500',     label: 'bg-red-700' },
+  { bg: 'bg-violet-600',  border: 'border-violet-500',  label: 'bg-violet-700' },
+  { bg: 'bg-pink-600',    border: 'border-pink-500',    label: 'bg-pink-700' },
 ]
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
+function QuestionSlide({ slide, phase, textColor, correctColor }: {
+  slide: Slide; phase: number; textColor: string; correctColor: string
+}) {
   const q = slide.question!
   const showAnswer = slide.showAnswer || phase >= 1
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -192,13 +302,16 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
   return (
     <div className="flex flex-col h-full px-12 py-10 gap-8">
       <div className="flex-1 flex items-center justify-center">
-        <h2 className="text-4xl font-bold text-white text-center leading-tight max-w-4xl">{q.text}</h2>
+        <h2 className="text-4xl font-bold text-center leading-tight max-w-4xl" style={{ color: textColor }}>
+          {q.text}
+        </h2>
       </div>
 
       {/* simple */}
       {q.type === 'simple' && showAnswer && (
         <div className="flex justify-center">
-          <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-2xl px-10 py-5 text-3xl font-bold text-emerald-300">
+          <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
+            style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
             {q.correct_answer}
           </div>
         </div>
@@ -207,22 +320,21 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
       {/* abcdef / ab */}
       {(q.type === 'ab' || q.type === 'abcdef') && opts.length > 0 && (
         <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full">
-          {opts.map((opt, i) => (
-            <div key={i}
-              className={`rounded-2xl px-5 py-4 flex items-center gap-4 border transition-all duration-300 ${
-                showAnswer && opt.correct
-                  ? 'bg-emerald-500/25 border-emerald-400 scale-[1.02] shadow-lg shadow-emerald-500/20'
-                  : showAnswer && !opt.correct
-                  ? 'bg-white/[0.03] border-white/[0.06] opacity-35'
-                  : 'bg-white/[0.08] border-white/[0.12]'
-              }`}>
-              <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0 border ${OPTION_COLORS[i] || 'bg-gray-600 border-gray-500'}`}>
-                {OPTION_LETTERS[i]}
-              </span>
-              <span className="text-lg font-semibold text-white leading-snug">{opt.text}</span>
-              {showAnswer && opt.correct && <span className="ml-auto text-emerald-400 text-2xl font-bold">✓</span>}
-            </div>
-          ))}
+          {opts.map((opt, i) => {
+            const col = OPTION_COLORS[i] || OPTION_COLORS[0]
+            return (
+              <div key={i}
+                className={`rounded-2xl px-5 py-4 flex items-center gap-4 border-2 transition-all duration-300 ${col.bg} ${col.border} ${
+                  showAnswer && opt.correct ? 'scale-[1.02] shadow-lg' : showAnswer && !opt.correct ? 'opacity-30' : ''
+                }`}>
+                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0 ${col.label}`}>
+                  {OPTION_LETTERS[i]}
+                </span>
+                <span className="text-lg font-semibold text-white leading-snug">{opt.text}</span>
+                {showAnswer && opt.correct && <span className="ml-auto text-white text-2xl font-bold">✓</span>}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -230,14 +342,14 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
       {q.type === 'bonus' && (
         <div className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
           {opts.map((opt, i) => (
-            <div key={i}
-              className={`rounded-xl px-6 py-3.5 flex items-center gap-4 border transition-all duration-300 ${
-                phase > i
-                  ? 'bg-emerald-500/20 border-emerald-500/40'
-                  : 'bg-white/[0.04] border-white/[0.06]'
-              }`}>
-              <span className={`text-sm font-black w-6 shrink-0 ${phase > i ? 'text-emerald-400' : 'text-gray-600'}`}>{i + 1}.</span>
-              <span className={`text-xl font-semibold transition-all ${phase > i ? 'text-white' : 'text-transparent select-none'}`}>
+            <div key={i} className="rounded-xl px-6 py-3.5 flex items-center gap-4 border-2 transition-all duration-300"
+              style={phase > i
+                ? { backgroundColor: correctColor + '22', borderColor: correctColor }
+                : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+              <span className="text-sm font-black w-6 shrink-0" style={{ color: phase > i ? correctColor : 'rgba(255,255,255,0.3)' }}>
+                {i + 1}.
+              </span>
+              <span className="text-xl font-semibold transition-all" style={{ color: phase > i ? textColor : 'transparent' }}>
                 {opt.text}
               </span>
             </div>
@@ -255,7 +367,8 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
             </div>
           )}
           {phase >= 2 && (
-            <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-2xl px-10 py-5 text-3xl font-bold text-emerald-300">
+            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
+              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
               {q.correct_answer}
             </div>
           )}
@@ -266,7 +379,7 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
       {q.type === 'video' && (
         <div className="flex flex-col items-center gap-6">
           {phase === 0 && q.media_url && (
-            <div className="flex items-center gap-3 text-gray-400 text-lg">
+            <div className="flex items-center gap-3" style={{ color: textColor, opacity: 0.5 }}>
               <Video size={28} className="text-pink-400" />
               <span className="truncate max-w-md font-mono text-sm">{q.media_url}</span>
             </div>
@@ -275,7 +388,8 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
             <video src={q.media_url} controls autoPlay className="max-h-64 rounded-xl border border-white/10" />
           )}
           {phase >= 2 && (
-            <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-2xl px-10 py-5 text-3xl font-bold text-emerald-300">
+            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border-2"
+              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
               {q.correct_answer}
             </div>
           )}
@@ -286,10 +400,12 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
       {q.type === 'image' && (
         <div className="flex flex-col items-center gap-4">
           {q.media_url && (
-            <img src={q.media_url} alt="" className="max-h-64 rounded-xl border border-white/10 object-contain" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={q.media_url} alt="" className="max-h-64 rounded-xl object-contain" />
           )}
           {showAnswer && q.correct_answer && (
-            <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-2xl px-10 py-4 text-2xl font-bold text-emerald-300">
+            <div className="rounded-2xl px-10 py-4 text-2xl font-bold border-2"
+              style={{ backgroundColor: correctColor + '22', borderColor: correctColor, color: correctColor }}>
               {q.correct_answer}
             </div>
           )}
@@ -299,7 +415,7 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
   )
 }
 
-function QrPageSlide({ slide }: { slide: Slide }) {
+function QrPageSlide({ slide, textColor }: { slide: Slide; textColor: string }) {
   const startUrl = typeof window !== 'undefined'
     ? `${window.location.protocol}//${window.location.host}/start`
     : 'https://kviz.michaljanda.com/start'
@@ -309,13 +425,13 @@ function QrPageSlide({ slide }: { slide: Slide }) {
         <div className="bg-white p-5 rounded-3xl shadow-2xl">
           <QRCodeSVG value={startUrl} size={260} level="M" />
         </div>
-        <p className="text-gray-400 text-sm text-center font-mono">{startUrl}</p>
+        <p className="text-sm text-center font-mono" style={{ color: textColor, opacity: 0.5 }}>{startUrl}</p>
       </div>
-      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
-        {slide.title && <h2 className="text-4xl font-black text-white leading-tight">{slide.title}</h2>}
-        {slide.content && <p className="text-xl text-gray-300 max-w-xl">{slide.content}</p>}
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/10">
+        {slide.title && <h2 className="text-4xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
+        {slide.content && <p className="text-xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
         {!slide.title && !slide.content && (
-          <p className="text-gray-500 text-lg">Naskenuj QR kód a sleduj kvíz na telefonu</p>
+          <p className="text-lg" style={{ color: textColor, opacity: 0.4 }}>Naskenuj QR kód a sleduj kvíz na telefonu</p>
         )}
       </div>
     </div>
@@ -342,8 +458,7 @@ export default function PlayPage() {
       .then(r => r.json())
       .then((data: QuizData) => {
         setQuiz(data)
-        const built = buildSlides(data)
-        setSlides(built)
+        setSlides(buildSlides(data))
         if (data.template_id) {
           fetch(`/api/templates/${data.template_id}`)
             .then(r => r.json())
@@ -359,13 +474,12 @@ export default function PlayPage() {
   const maxPhase = currentSlide ? getMaxPhase(currentSlide) : 0
 
   const pushState = useCallback((si: number, ph: number) => {
-    const body = JSON.stringify({ slideIndex: si, phase: ph })
     fetch(`/api/quizzes/${quizId}/state`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slideIndex: si, phase: ph }),
     }).catch(() => {})
     fetch('/api/active', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quizId, slideIndex: si, phase: ph }),
     }).catch(() => {})
   }, [quizId])
@@ -373,8 +487,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!quiz) return
     fetch('/api/active', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quizId, slideIndex: 0, phase: 0 }),
     }).catch(() => {})
   }, [quiz, quizId])
@@ -383,6 +496,9 @@ export default function PlayPage() {
     fetch('/api/active', { method: 'DELETE' }).catch(() => {})
     router.push('/admin/quizzes')
   }, [router])
+
+  const goToStart = useCallback(() => { setSlideIndex(0); setPhase(0); pushState(0, 0) }, [pushState])
+  const goToSlide = useCallback((idx: number) => { setSlideIndex(idx); setPhase(0); pushState(idx, 0) }, [pushState])
 
   const handleForward = useCallback(() => {
     if (!currentSlide) return
@@ -403,9 +519,11 @@ export default function PlayPage() {
     }
   }, [phase, slideIndex, slides, pushState])
 
-  const goToSlide = (idx: number) => {
-    setSlideIndex(idx); setPhase(0); pushState(idx, 0)
-  }
+  const handleSkipForward = useCallback(() => {
+    if (slideIndex < slides.length - 1) {
+      const si = slideIndex + 1; setSlideIndex(si); setPhase(0); pushState(si, 0)
+    }
+  }, [slideIndex, slides.length, pushState])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -429,6 +547,7 @@ export default function PlayPage() {
     <div className="min-h-screen bg-[#08090f] flex items-center justify-center text-white">
       <div className="text-center space-y-4">
         <p className="text-2xl font-bold">Kvíz nenalezen nebo neobsahuje otázky</p>
+        <p className="text-gray-400 text-sm">Přidejte otázky přes builder kvízu</p>
         <button onClick={() => router.push('/admin/quizzes')}
           className="px-6 py-3 bg-violet-600 rounded-xl hover:bg-violet-500 transition-colors">
           Zpět na kvízy
@@ -440,148 +559,132 @@ export default function PlayPage() {
   const slide = slides[slideIndex]
   const canGoBack = slideIndex > 0 || phase > 0
   const canGoForward = slideIndex < slides.length - 1 || phase < maxPhase
+  const canSkip = slideIndex < slides.length - 1
 
-  const tmplStyle: React.CSSProperties = tmpl ? {
-    fontFamily: tmpl.fontFamily || undefined,
-    color: tmpl.textColor || undefined,
-  } : {}
+  const textColor = tmpl?.textColor || '#ffffff'
+  const accentColor = tmpl?.accentColor || '#8b5cf6'
+  const correctColor = tmpl?.correctColor || '#10b981'
+  const fontFamily = tmpl?.fontFamily || undefined
 
-  const slideStyle: React.CSSProperties = slide.type === 'question' && slide.question
-    ? bgFromConfig(tmpl, slide.question.type)
-    : slide.type === 'separator'
-    ? bgFromConfig(tmpl, undefined, 'separator')
-    : slide.type === 'qr_page'
-    ? bgFromConfig(tmpl, undefined, 'qr_page')
-    : {}
+  const currentBg = slideBackground(slide, tmpl)
+  const hasBg = Object.keys(currentBg).length > 0
 
-  const nextLabel = phase < maxPhase
-    ? (slide.question?.type === 'bonus' ? `Odhal #${phase + 1}` : 'Zobraz odpověď')
-    : slideIndex < slides.length - 1 ? 'Další' : 'Konec'
+  // Zjistíme číslo kola pro stránky (round_start před touto stránkou)
+  let roundLabel: string | undefined
+  for (let i = slideIndex - 1; i >= 0; i--) {
+    if (slides[i].type === 'round_start') {
+      roundLabel = `${slides[i].roundNumber}. kolo`
+      break
+    }
+    if (slides[i].type === 'separator') break
+  }
+
+  const centerLabel = phase < maxPhase
+    ? (slide.question?.type === 'bonus' ? `Odhal #${phase + 1}` : 'Zobrazit odpověď')
+    : slideIndex < slides.length - 1 ? 'Další →' : 'Konec'
 
   return (
-    <div className="h-screen bg-[#08090f] text-white flex flex-col select-none overflow-hidden" style={tmplStyle}>
+    <div className="h-screen flex select-none overflow-hidden" style={{ fontFamily, background: '#111' }}>
 
-      {/* ── Top bar ── */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-white/[0.08] shrink-0 text-sm">
-        <button onClick={handleClose}
-          className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors mr-1">
-          <X size={14} /> Zavřít
-        </button>
-        <span className="text-white/20">|</span>
-        <span className="font-semibold text-white/90 truncate max-w-[200px]">{quiz.name}</span>
-        <span className="text-white/20">|</span>
-        <span className="text-gray-400 tabular-nums">
-          <span className="text-white font-bold">{slideIndex + 1}</span>/{slides.length}
-        </span>
-        {maxPhase > 0 && <>
-          <span className="text-white/20">|</span>
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: maxPhase + 1 }).map((_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full transition-all ${i <= phase ? 'bg-violet-400' : 'bg-white/20'}`} />
+      {/* ── Levý sidebar ── */}
+      {sidebarOpen && (
+        <div className="w-[280px] shrink-0 bg-[#0c0e1a] border-r border-white/[0.07] flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06] shrink-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Slidy</p>
+              <p className="text-xs text-white/60 font-semibold mt-0.5 truncate max-w-[180px]">{quiz.name}</p>
+            </div>
+            <button onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/[0.06] transition-colors">
+              <PanelLeftClose size={14} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto py-1.5">
+            {slides.map((s, idx) => (
+              <SlideThumbnail key={idx} slide={s} idx={idx} isCurrent={idx === slideIndex} tmpl={tmpl} onClick={() => goToSlide(idx)} />
             ))}
           </div>
-        </>}
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => window.open('/start', '_blank')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-violet-600/25 border border-violet-500/30 text-violet-300 hover:bg-violet-600/40 transition-colors text-xs font-semibold">
-            <Eye size={12} /> Divák
-          </button>
-          <button onClick={() => setSidebarOpen(v => !v)}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors"
-            title="Přepnout panel slidů (S)">
-            {sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
-          </button>
+          <div className="px-3 py-2.5 border-t border-white/[0.06] text-center">
+            <span className="text-sm font-bold text-white">{slideIndex + 1}</span>
+            <span className="text-xs text-gray-600 mx-1">/</span>
+            <span className="text-xs text-gray-600">{slides.length}</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Body: sidebar + main ── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Hlavní oblast ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Left sidebar — slide list */}
-        {sidebarOpen && (
-          <div className="w-64 shrink-0 bg-black/40 border-r border-white/[0.07] flex flex-col overflow-hidden">
-            <div className="px-3 py-2 border-b border-white/[0.06]">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                Slidy ({slides.length})
-              </p>
-            </div>
-            <div className="flex-1 overflow-y-auto py-1">
-              {slides.map((s, idx) => {
-                const isCurrent = idx === slideIndex
-                const isAnswer = s.showAnswer
-                const isSep = s.type === 'separator'
-                const isSpecial = s.type !== 'question'
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => goToSlide(idx)}
-                    className={`w-full text-left flex items-start gap-2.5 px-3 py-2.5 transition-all border-l-2 ${
-                      isCurrent
-                        ? 'bg-violet-600/20 border-violet-500 text-white'
-                        : 'border-transparent hover:bg-white/[0.04] text-gray-400 hover:text-gray-200'
-                    } ${isSep ? 'border-t border-white/[0.06] mt-1 pt-3' : ''}`}
-                  >
-                    <span className={`mt-0.5 shrink-0 ${isCurrent ? 'text-violet-400' : isSpecial ? 'text-gray-500' : 'text-gray-600'}`}>
-                      {slideIcon(s)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-xs leading-snug line-clamp-2 ${isCurrent ? 'text-white font-medium' : ''}`}>
-                        {isAnswer ? <span className="text-emerald-400 font-semibold text-[10px] block mb-0.5">↩ odpověď</span> : null}
-                        {slideLabel(s, idx)}
-                      </p>
-                      {s.question && (
-                        <p className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-wide">{s.question.type}</p>
-                      )}
-                    </div>
-                    {isCurrent && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0 mt-1.5" />
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* Slide */}
+        <div className="flex-1 relative overflow-hidden"
+          style={hasBg ? currentBg : { background: '#0f1020' }}>
 
-        {/* Main slide area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 relative overflow-hidden transition-all duration-300" style={slideStyle}>
-            {slide.type === 'page' && <PageSlide slide={slide} />}
-            {slide.type === 'round_start' && <RoundStartSlide slide={slide} />}
-            {slide.type === 'separator' && <SeparatorSlide slide={slide} />}
-            {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} />}
-            {slide.type === 'qr_page' && <QrPageSlide slide={slide} />}
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center justify-between px-6 py-4 bg-black/50 border-t border-white/[0.06] shrink-0 gap-4">
-            <button onClick={handleBack} disabled={!canGoBack}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.13] border border-white/[0.08] disabled:opacity-20 disabled:cursor-not-allowed transition-all font-semibold text-sm">
-              <ChevronLeft size={18} /> Zpět
-            </button>
-
-            <div className="flex-1 flex items-center justify-center">
-              {slide.type === 'question' && slide.question && (
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="px-2 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono uppercase">
-                    {slide.question.type}
-                  </span>
-                  {slide.question.points && (
-                    <span>{slide.question.points} b.</span>
-                  )}
-                  {slide.question.difficulty && (
-                    <span className="capitalize">{slide.question.difficulty}</span>
-                  )}
+          {/* Top overlay */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-3 px-4 py-2.5"
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%)' }}>
+            {!sidebarOpen && (
+              <button onClick={() => setSidebarOpen(true)}
+                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                <PanelLeftOpen size={15} />
+              </button>
+            )}
+            <span className="text-white/80 text-sm font-semibold truncate max-w-[300px] drop-shadow">{quiz.name}</span>
+            <div className="ml-auto flex items-center gap-2">
+              {maxPhase > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: maxPhase + 1 }).map((_, i) => (
+                    <div key={i} className={`w-2 h-2 rounded-full transition-all ${i <= phase ? 'bg-amber-400' : 'bg-white/20'}`} />
+                  ))}
                 </div>
               )}
+              <button onClick={() => window.open('/start', '_blank')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-colors text-xs font-semibold backdrop-blur-sm">
+                <Eye size={11} /> Divák
+              </button>
             </div>
-
-            <button onClick={handleForward} disabled={!canGoForward}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-20 disabled:cursor-not-allowed transition-all font-bold text-sm shadow-lg shadow-violet-500/25 border border-violet-500/50">
-              {nextLabel}
-              <ChevronRight size={18} />
-            </button>
           </div>
+
+          {/* Obsah slidů */}
+          {slide.type === 'page' && <PageSlide slide={slide} textColor={textColor} roundLabel={roundLabel} />}
+          {slide.type === 'round_start' && <RoundStartSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
+          {slide.type === 'separator' && <SeparatorSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
+          {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} textColor={textColor} correctColor={correctColor} />}
+          {slide.type === 'qr_page' && <QrPageSlide slide={slide} textColor={textColor} />}
+        </div>
+
+        {/* ── Spodní ovládání — kulatá barevná tlačítka ── */}
+        <div className="flex items-center justify-center gap-4 px-8 py-5 shrink-0"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 100%)', backdropFilter: 'blur(8px)' }}>
+
+          {/* Restart — modrá */}
+          <button onClick={goToStart} title="Začít znovu (Home)"
+            className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-400 active:scale-95 flex items-center justify-center shadow-xl shadow-blue-500/30 transition-all">
+            <RotateCcw size={22} className="text-white" />
+          </button>
+
+          {/* Zpět — oranžová */}
+          <button onClick={handleBack} disabled={!canGoBack} title="Zpět (←)"
+            className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all">
+            <ChevronLeft size={28} className="text-white" />
+          </button>
+
+          {/* Hlavní akce — modrá pill */}
+          <button onClick={handleForward} disabled={!canGoForward}
+            className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
+            {centerLabel}
+          </button>
+
+          {/* Přeskočit — zelená */}
+          <button onClick={handleSkipForward} disabled={!canSkip} title="Přeskočit (→)"
+            className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all">
+            <ChevronRight size={28} className="text-white" />
+          </button>
+
+          {/* Zavřít — červená */}
+          <button onClick={handleClose} title="Zavřít (Esc)"
+            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center shadow-xl shadow-red-500/30 transition-all">
+            <X size={22} className="text-white" />
+          </button>
         </div>
       </div>
     </div>

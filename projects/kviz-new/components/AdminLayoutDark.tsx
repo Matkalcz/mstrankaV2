@@ -75,17 +75,17 @@ function QuickActions() {
         {lastQuizId && (
           <button
             onClick={() => router.push(`/play/${lastQuizId}`)}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-violet-600/15 hover:bg-violet-600/28 border border-violet-500/25 text-[13px] font-bold text-violet-300 hover:text-white transition-all">
-            <Play size={14} className="text-violet-400" /> Spustit kvíz
+            className="w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-violet-600/15 hover:bg-violet-600/28 border border-violet-500/25 text-[15px] font-bold text-violet-300 hover:text-white transition-all">
+            <Play size={16} className="text-violet-400" /> Spustit kvíz
           </button>
         )}
         <Link href="/admin/questions/new"
-          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[13px] font-semibold text-gray-300 hover:text-white transition-all">
-          <Plus size={14} className="text-gray-500" /> Nová otázka
+          className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[15px] font-semibold text-gray-300 hover:text-white transition-all">
+          <Plus size={16} className="text-gray-500" /> Nová otázka
         </Link>
         <Link href="/admin/quizzes/new"
-          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[13px] font-semibold text-gray-300 hover:text-white transition-all">
-          <Plus size={14} className="text-gray-500" /> Nový kvíz
+          className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[15px] font-semibold text-gray-300 hover:text-white transition-all">
+          <Plus size={16} className="text-gray-500" /> Nový kvíz
         </Link>
       </div>
     </div>

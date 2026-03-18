@@ -9,8 +9,12 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Kviz New - Nový hospodský kvíz",
+  title: "Hospodský Kvíz",
   description: "Moderní systém pro hospodské kvízy s automatickým řízením",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

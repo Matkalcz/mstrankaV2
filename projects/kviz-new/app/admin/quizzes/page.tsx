@@ -148,11 +148,11 @@ export default function QuizzesPage() {
                       {/* Name + description */}
                       <div className="pr-4 min-w-0">
                         <Link href={`/admin/quizzes/${q.id}`}
-                          className="text-[15px] font-semibold text-gray-200 hover:text-violet-300 leading-snug truncate block transition-colors">
+                          className="text-[16px] font-medium text-gray-100 hover:text-violet-300 leading-snug truncate block transition-colors">
                           {q.name}
                         </Link>
                         {q.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 truncate">{q.description}</p>
+                          <p className="text-[13px] text-gray-500 mt-0.5 truncate">{q.description}</p>
                         )}
                       </div>
                       {/* Status */}

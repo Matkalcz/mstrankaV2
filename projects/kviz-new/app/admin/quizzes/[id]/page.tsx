@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Play, Save, Loader2, Plus, Trash2, GripVertical,
   FileText, Flag, Minus, HelpCircle, Search, X, ChevronDown, Check,
-  SlidersHorizontal, QrCode, LayoutTemplate
+  SlidersHorizontal, QrCode, LayoutTemplate, Pencil
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -70,7 +70,7 @@ const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; 
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  simple: 'Prostá', ab: 'A/B', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video'
+  simple: 'Prostá', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video', image: 'Obrázková'
 }
 const DIFF_LABELS: Record<string, string> = { easy: 'Lehká', medium: 'Střední', hard: 'Těžká' }
 const DIFF_COLORS: Record<string, string> = {
@@ -98,6 +98,57 @@ function itemsToSequence(items: SlideItem[]): any[] {
   return items.map(({ _key, questionText, questionType, ...rest }) => rest)
 }
 
+// ─── FilterPill — styled custom dropdown ──────────────────────────────────────
+
+function FilterPill({ label, value, options, onChange }: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const current = options.find(o => o.value === value)
+  const displayLabel = current ? current.label : label
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors whitespace-nowrap ${
+          value
+            ? 'bg-violet-500/15 border-violet-500/30 text-violet-200 hover:bg-violet-500/25'
+            : 'bg-white/[0.05] border-white/[0.08] text-gray-300 hover:bg-white/[0.08]'
+        }`}
+      >
+        {displayLabel}
+        <ChevronDown size={13} className={`transition-transform opacity-60 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-full mt-1.5 left-0 z-20 bg-[#13152a] border border-white/[0.12] rounded-xl shadow-2xl shadow-black/50 py-1 min-w-[150px]">
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors flex items-center gap-2 ${
+                  value === opt.value
+                    ? 'text-violet-300 bg-violet-500/10'
+                    : 'text-gray-300 hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                {value === opt.value && <Check size={12} className="text-violet-400 shrink-0" />}
+                {value !== opt.value && <span className="w-3" />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Modal pro výběr otázek (multi-select) ────────────────────────────────────
 
 function QuestionModal({ questions, onSelect, onClose }: {
@@ -108,13 +159,20 @@ function QuestionModal({ questions, onSelect, onClose }: {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterDiff, setFilterDiff] = useState('')
+  const [filterTag, setFilterTag] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  // Extract unique tags from all questions
+  const allTags = Array.from(
+    new Map(questions.flatMap(q => q.tags).map(t => [t.id, t])).values()
+  ).sort((a, b) => a.name.localeCompare(b.name, 'cs'))
 
   const filtered = questions.filter(q => {
     const matchSearch = !search || q.text.toLowerCase().includes(search.toLowerCase())
     const matchType = !filterType || q.type === filterType
     const matchDiff = !filterDiff || q.difficulty === filterDiff
-    return matchSearch && matchType && matchDiff
+    const matchTag = !filterTag || q.tags.some(t => t.id === filterTag)
+    return matchSearch && matchType && matchDiff && matchTag
   })
 
   const toggle = (id: string) =>
@@ -147,25 +205,52 @@ function QuestionModal({ questions, onSelect, onClose }: {
         </div>
 
         {/* Filters */}
-        <div className="px-6 py-3 border-b border-white/[0.06] flex gap-3">
-          <div className="relative flex-1">
+        <div className="px-6 py-3 border-b border-white/[0.06] flex gap-2 flex-wrap items-center">
+          <div className="relative flex-1 min-w-[160px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Hledat otázku…"
               className="w-full pl-8 pr-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
           </div>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-gray-300 focus:outline-none [color-scheme:dark]">
-            <option value="">Všechny typy</option>
-            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-          <select value={filterDiff} onChange={e => setFilterDiff(e.target.value)}
-            className="px-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-gray-300 focus:outline-none [color-scheme:dark]">
-            <option value="">Obtížnost</option>
-            <option value="easy">Lehká</option>
-            <option value="medium">Střední</option>
-            <option value="hard">Těžká</option>
-          </select>
+          <FilterPill
+            label="Typ"
+            value={filterType}
+            onChange={setFilterType}
+            options={[
+              { value: '', label: 'Všechny typy' },
+              ...Object.entries(TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))
+            ]}
+          />
+          <FilterPill
+            label="Obtížnost"
+            value={filterDiff}
+            onChange={setFilterDiff}
+            options={[
+              { value: '', label: 'Obtížnost' },
+              { value: 'easy', label: 'Lehká' },
+              { value: 'medium', label: 'Střední' },
+              { value: 'hard', label: 'Těžká' },
+            ]}
+          />
+          {allTags.length > 0 && (
+            <FilterPill
+              label="Kategorie"
+              value={filterTag}
+              onChange={setFilterTag}
+              options={[
+                { value: '', label: 'Všechny kategorie' },
+                ...allTags.map(t => ({ value: t.id, label: t.name }))
+              ]}
+            />
+          )}
+          {(filterType || filterDiff || filterTag) && (
+            <button
+              onClick={() => { setFilterType(''); setFilterDiff(''); setFilterTag('') }}
+              className="px-2.5 py-2 text-xs text-gray-500 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+            >
+              × Vše
+            </button>
+          )}
         </div>
 
         {/* Select all row */}
@@ -404,6 +489,8 @@ export default function QuizBuilderPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
 
   // Load quiz + questions + templates
   useEffect(() => {
@@ -519,7 +606,34 @@ export default function QuizBuilderPage() {
               className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-2 transition-colors">
               <ArrowLeft size={12} /> Zpět na kvízy
             </Link>
-            <h1 className="text-2xl font-bold text-white truncate">{quiz.name}</h1>
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onBlur={() => {
+                  setEditingName(false)
+                  if (nameInput.trim()) setQuiz(prev => prev ? { ...prev, name: nameInput.trim() } : prev)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    setEditingName(false)
+                    if (nameInput.trim()) setQuiz(prev => prev ? { ...prev, name: nameInput.trim() } : prev)
+                  }
+                  if (e.key === 'Escape') setEditingName(false)
+                }}
+                className="text-2xl font-bold text-white bg-transparent border-b-2 border-violet-500 outline-none w-full max-w-lg"
+              />
+            ) : (
+              <h1
+                onClick={() => { setNameInput(quiz.name); setEditingName(true) }}
+                className="text-2xl font-bold text-white truncate cursor-pointer group flex items-center gap-2 hover:text-violet-200 transition-colors"
+                title="Klikněte pro přejmenování"
+              >
+                {quiz.name}
+                <Pencil size={15} className="opacity-0 group-hover:opacity-40 text-violet-400 transition-opacity shrink-0" />
+              </h1>
+            )}
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <p className="text-sm text-gray-500">
                 {items.length} slidů · {questionCount} otázek · {roundCount} kol
