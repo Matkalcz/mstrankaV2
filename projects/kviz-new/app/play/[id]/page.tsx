@@ -115,14 +115,13 @@ function buildSlides(quiz: QuizData): Slide[] {
       })
     } else if (item.type === 'separator') {
       slides.push({ type: 'separator', title: item.title })
-      // Přidáme opakování otázek s okamžitě zobrazenou odpovědí
+      // Po oddělovači: každá otázka se znovu zobrazí — nejdříve bez odpovědi, pak na klik "Zobrazit odpověď"
       const prevQuestions = slides
         .filter(s => s.type === 'question' && !s.showAnswer)
         .map(s => ({
           type: 'question' as SlideType,
           question: s.question!,
-          showAnswer: true,
-          noAnswerPhase: false,
+          noAnswerPhase: false,   // má fázi zobrazení odpovědi
         }))
       slides.push(...prevQuestions)
     } else if (item.type === 'round_start') {
@@ -142,13 +141,12 @@ function buildSlides(quiz: QuizData): Slide[] {
 
 function getMaxPhase(slide: Slide): number {
   if (!slide.question) return 0
-  if (slide.showAnswer) return 0        // opakování po oddělovači — odpověď ihned, bez fází
   const q = slide.question
   if (q.type === 'bonus') return (q.options?.length ?? 0)
   if (q.type === 'audio') return 2
   if (q.type === 'video') return 2
-  if (slide.noAnswerPhase) return 0     // otázka s oddělovačem — přejdi rovnou na další
-  return 1                              // otázka bez oddělovače — zobraz odpověď ve fázi
+  if (slide.noAnswerPhase) return 0     // otázka před oddělovačem — přejdi rovnou na další
+  return 1                              // zobraz odpověď na klik
 }
 
 // ─── Ikona a popis slidů (sidebar) ───────────────────────────────────────────
@@ -284,12 +282,29 @@ function PageSlide({ slide, textColor, roundLabel }: { slide: Slide; textColor: 
 
 function RoundStartSlide({ slide, textColor, accentColor }: { slide: Slide; textColor: string; accentColor: string }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-      <div className="text-xl font-bold tracking-widest uppercase" style={{ color: accentColor }}>
-        Kolo {slide.roundNumber}
+    <div className="flex flex-col h-full">
+      {/* Číslo kola nahoře — stejná velikost jako číslo otázky */}
+      <div className="flex items-center justify-center pt-7 pb-1 shrink-0 min-h-[52px]">
+        {slide.roundNumber !== undefined && (
+          <span className="text-2xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
+            {slide.roundNumber}. kolo
+          </span>
+        )}
       </div>
-      <h1 className="text-6xl font-black" style={{ color: textColor }}>{slide.title || `Kolo ${slide.roundNumber}`}</h1>
-      {slide.subtitle && <p className="text-2xl mt-2" style={{ color: textColor, opacity: 0.7 }}>{slide.subtitle}</p>}
+      {/* Název kola — velký font uprostřed */}
+      <div className="flex-1 flex items-center justify-center px-12">
+        <h1 className="text-6xl font-black text-center leading-tight" style={{ color: textColor }}>
+          {slide.title || ''}
+        </h1>
+      </div>
+      {/* Popisek — zvětšený, odsazený od nadpisu */}
+      <div className="flex justify-center px-12 pb-16 shrink-0 min-h-[96px]">
+        {slide.subtitle && (
+          <p className="text-3xl text-center" style={{ color: textColor, opacity: 0.65 }}>
+            {slide.subtitle}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -366,23 +381,23 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* abcdef — gray border, colored letter badge, highlight correct */}
+        {/* abcdef — gray border, colored letter badge, highlight correct with correctColor */}
         {q.type === 'abcdef' && opts.length > 0 && (
           <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto w-full">
             {opts.map((opt, i) => (
               <div key={i}
                 className={`rounded-2xl px-5 py-3.5 flex items-center gap-4 border transition-all duration-300 ${
-                  showAnswer && opt.correct
-                    ? 'border-white/40 bg-white/10 scale-[1.02]'
-                    : showAnswer && !opt.correct
-                    ? 'border-white/8 opacity-30'
-                    : 'border-white/20 bg-white/5'
-                }`}>
+                  showAnswer && !opt.correct ? 'opacity-25' : ''
+                }`}
+                style={showAnswer && opt.correct
+                  ? { borderColor: correctColor, backgroundColor: correctColor + '22', transform: 'scale(1.02)' }
+                  : { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)' }
+                }>
                 <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black text-white shrink-0 ${OPTION_COLORS[i]?.label || 'bg-gray-600'}`}>
                   {OPTION_LETTERS[i]}
                 </span>
                 <span className="text-lg font-semibold leading-snug" style={{ color: textColor }}>{opt.text}</span>
-                {showAnswer && opt.correct && <span className="ml-auto text-2xl font-bold" style={{ color: textColor }}>✓</span>}
+                {showAnswer && opt.correct && <span className="ml-auto text-2xl font-bold" style={{ color: correctColor }}>✓</span>}
               </div>
             ))}
           </div>
@@ -688,19 +703,13 @@ export default function PlayPage() {
               </button>
             )}
             <span className="text-white/80 text-sm font-semibold truncate max-w-[300px] drop-shadow">{quiz.name}</span>
-            <div className="ml-auto flex items-center gap-2">
-              {maxPhase > 0 && (
-                <div className="flex items-center gap-1.5">
-                  {Array.from({ length: maxPhase + 1 }).map((_, i) => (
-                    <div key={i} className={`w-2 h-2 rounded-full transition-all ${i <= phase ? 'bg-amber-400' : 'bg-white/20'}`} />
-                  ))}
-                </div>
-              )}
-              <button onClick={() => window.open('/start', '_blank')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-colors text-xs font-semibold backdrop-blur-sm">
-                <Eye size={11} /> Divák
-              </button>
-            </div>
+            {maxPhase > 0 && (
+              <div className="ml-auto flex items-center gap-1.5">
+                {Array.from({ length: maxPhase + 1 }).map((_, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full transition-all ${i <= phase ? 'bg-amber-400' : 'bg-white/20'}`} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Obsah slidů */}
@@ -734,6 +743,12 @@ export default function PlayPage() {
             <button onClick={handleForward} disabled={!canGoForward}
               className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
               {centerLabel}
+            </button>
+
+            {/* Divák — vedle modrého tlačítka */}
+            <button onClick={() => window.open('/start', '_blank')}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-colors text-sm font-semibold">
+              <Eye size={14} /> Divák
             </button>
 
             {/* Přeskočit — zelená */}

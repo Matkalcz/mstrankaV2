@@ -438,16 +438,29 @@ function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Pa
   )
 
   if (item.type === 'round_start') return (
-    <div className="mt-2 space-y-1.5">
+    <div className="mt-2 space-y-2">
       <div className="flex gap-2">
-        <input type="number" value={item.roundNumber || 1} min={1}
-          onChange={e => onChange({ roundNumber: parseInt(e.target.value) || 1 })}
-          className={inputCls + ' w-20'} placeholder="Kolo" />
-        <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
-          placeholder="Název kola…" className={inputCls + ' flex-1'} />
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Číslo kola</label>
+          <input
+            type="number"
+            value={item.roundNumber || 1}
+            min={1}
+            onChange={e => onChange({ roundNumber: parseInt(e.target.value) || 1 })}
+            className={inputCls + ' w-20 [color-scheme:dark]'}
+          />
+        </div>
+        <div className="flex flex-col gap-1 flex-1">
+          <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Název kola</label>
+          <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
+            placeholder="Název kola…" className={inputCls} />
+        </div>
       </div>
-      <input value={item.subtitle || ''} onChange={e => onChange({ subtitle: e.target.value })}
-        placeholder="Podnadpis…" className={inputCls} />
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Popisek</label>
+        <input value={item.subtitle || ''} onChange={e => onChange({ subtitle: e.target.value })}
+          placeholder="Popisek kola (nepovinný)…" className={inputCls} />
+      </div>
     </div>
   )
 
@@ -827,6 +840,11 @@ export default function QuizBuilderPage() {
                           <span className={`text-[11px] font-bold uppercase tracking-wider ${meta.color}`}>
                             {templatePageName || meta.label}
                           </span>
+                          {item.type === 'round_start' && item.roundNumber !== undefined && (
+                            <span className="text-[10px] text-gray-500 font-medium">
+                              Kolo {item.roundNumber}{item.title ? ` · ${item.title}` : ''}
+                            </span>
+                          )}
                           {item.type === 'question' && item.questionType && (
                             <span className="text-[10px] text-gray-500 font-medium">
                               {TYPE_LABELS[item.questionType] || item.questionType}

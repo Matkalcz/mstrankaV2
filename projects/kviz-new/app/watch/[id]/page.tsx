@@ -100,7 +100,7 @@ function buildSlides(quiz: QuizData): Slide[] {
       slides.push({ type: 'separator', title: item.title })
       const prevQ = slides
         .filter(s => s.type === 'question' && !s.showAnswer)
-        .map(s => ({ type: 'question' as SlideType, question: s.question!, showAnswer: true, noAnswerPhase: false }))
+        .map(s => ({ type: 'question' as SlideType, question: s.question!, noAnswerPhase: false }))
       slides.push(...prevQ)
     } else if (item.type === 'round_start') {
       slides.push({ type: 'round_start', title: item.title, subtitle: item.subtitle, roundNumber: item.roundNumber })
@@ -173,14 +173,26 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   }
 
   if (slide.type === 'round_start') return (
-    <div className="flex flex-col items-center justify-center h-full text-center gap-6">
-      <div className="text-2xl font-bold tracking-widest uppercase" style={{ color: accentColor }}>
-        Kolo {slide.roundNumber}
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-center pt-8 pb-1 shrink-0 min-h-[60px]">
+        {slide.roundNumber !== undefined && (
+          <span className="text-3xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.5 }}>
+            {slide.roundNumber}. kolo
+          </span>
+        )}
       </div>
-      <h1 className="text-7xl font-black leading-tight" style={{ color: textColor }}>
-        {slide.title || `Kolo ${slide.roundNumber}`}
-      </h1>
-      {slide.subtitle && <p className="text-3xl mt-2" style={{ color: textColor, opacity: 0.7 }}>{slide.subtitle}</p>}
+      <div className="flex-1 flex items-center justify-center px-16">
+        <h1 className="text-7xl font-black text-center leading-tight" style={{ color: textColor }}>
+          {slide.title || ''}
+        </h1>
+      </div>
+      <div className="flex justify-center px-16 pb-20 shrink-0 min-h-[100px]">
+        {slide.subtitle && (
+          <p className="text-4xl text-center" style={{ color: textColor, opacity: 0.65 }}>
+            {slide.subtitle}
+          </p>
+        )}
+      </div>
     </div>
   )
 
