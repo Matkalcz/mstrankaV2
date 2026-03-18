@@ -1,341 +1,208 @@
-// app/admin/quizzes/new/page.tsx - Vytvoření nového kvízu (zjednodušená verze)
+// app/admin/quizzes/new/page.tsx
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, Save, Plus, Eye, Settings, ListOrdered, Users, Clock } from "lucide-react"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ArrowLeft, Save, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 
-export default function NewQuizPage() {
-  const [step, setStep] = useState(1)
-  const [quizConfig, setQuizConfig] = useState({
-    name: "",
-    description: "",
-    rounds: 1,
-    questionsPerRound: 10,
-    timePerQuestion: 30,
-    showAnswers: true,
-    randomize: false,
-  })
+interface FormState {
+  name: string
+  description: string
+  status: "draft" | "published" | "archived"
+  template_id: string
+}
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target
-    setQuizConfig(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value
-    }))
+const DEFAULTS: FormState = {
+  name: "",
+  description: "",
+  status: "draft",
+  template_id: "",
+}
+
+interface Template { id: string; name: string }
+
+function QuizFormInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams.get("id")
+  const isEdit = !!editId
+
+  const [form, setForm]         = useState<FormState>(DEFAULTS)
+  const [saving, setSaving]     = useState(false)
+  const [loading, setLoading]   = useState(isEdit)
+  const [error, setError]       = useState<string | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
+
+  const set = (key: keyof FormState) => (val: string) =>
+    setForm(prev => ({ ...prev, [key]: val }))
+
+  // Load templates for selector
+  useEffect(() => {
+    fetch("/api/templates")
+      .then(r => r.json())
+      .then(data => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
+  // Load quiz for edit mode
+  useEffect(() => {
+    if (!editId) return
+    fetch(`/api/quizzes/${editId}`)
+      .then(r => r.json())
+      .then(data => {
+        setForm({
+          name:        data.name        ?? "",
+          description: data.description ?? "",
+          status:      data.status      ?? "draft",
+          template_id: data.template_id ?? "",
+        })
+      })
+      .catch(() => alert("Chyba při načítání kvízu"))
+      .finally(() => setLoading(false))
+  }, [editId])
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError("Název kvízu je povinný."); return }
+    setError(null)
+    setSaving(true)
+    const payload = {
+      name:        form.name.trim(),
+      description: form.description.trim() || null,
+      status:      form.status,
+      template_id: form.template_id || null,
+    }
+    try {
+      const url    = isEdit ? `/api/quizzes/${editId}` : "/api/quizzes"
+      const method = isEdit ? "PUT" : "POST"
+      const res    = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error((b as any).error || `HTTP ${res.status}`)
+      }
+      router.push("/admin/quizzes")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    alert(`Kvíz "${quizConfig.name}" vytvořen (demo - zatím bez databáze)`)
-  }
+  const inputCls  = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+  const selectCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
+  const labelCls  = "block text-xs font-semibold text-gray-400 mb-1.5"
+  const sectionCls = "bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 space-y-4"
+
+  if (loading) return (
+    <div className="flex justify-center py-32">
+      <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/admin/quizzes" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2">
-            <ArrowLeft className="h-4 w-4" />
-            Zpět na kvízy
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Vytvořit nový kvíz</h1>
-          <p className="text-gray-600">Nastavte kvíz podle specifikace</p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
-            {[1, 2, 3].map((stepNum) => (
-              <button
-                key={stepNum}
-                type="button"
-                onClick={() => setStep(stepNum)}
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  step === stepNum
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {stepNum === 1 && "Základní info"}
-                {stepNum === 2 && "Otázky"}
-                {stepNum === 3 && "Nastavení"}
-              </button>
-            ))}
+    <div>
+      {/* Sticky header */}
+      <div className="px-8 pt-8 pb-6 border-b border-white/[0.08] bg-[#0f1120] sticky top-0 z-10">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Link href="/admin/quizzes"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-2 transition-colors">
+              <ArrowLeft size={12} /> Zpět na kvízy
+            </Link>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              {isEdit ? "Upravit kvíz" : "Nový kvíz"}
+            </h1>
           </div>
-
           <button
-            type="submit"
-            form="quiz-form"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={handleSave}
+            disabled={saving || !form.name.trim()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 disabled:opacity-50 transition-all active:scale-95"
           >
-            <Save className="h-4 w-4" />
-            Uložit kvíz
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {isEdit ? "Uložit změny" : "Vytvořit kvíz"}
           </button>
         </div>
       </div>
 
-      <form id="quiz-form" onSubmit={handleSubmit} className="space-y-6">
-        {/* Step 1: Basic Info */}
-        {step === 1 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div className="rounded border bg-white p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <ListOrdered className="h-5 w-5" />
-                  Základní informace
-                </h2>
+      {/* Form */}
+      <div className="px-8 py-6 max-w-xl space-y-4">
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Název kvízu *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={quizConfig.name}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                      placeholder="Např. Hospodský kvíz #1"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Popis
-                    </label>
-                    <textarea
-                      name="description"
-                      value={quizConfig.description}
-                      onChange={handleChange}
-                      rows={3}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                      placeholder="Popis kvízu pro účastníky..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded border bg-white p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Struktura kvízu
-                </h2>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Počet kol
-                    </label>
-                    <input
-                      type="number"
-                      name="rounds"
-                      value={quizConfig.rounds}
-                      onChange={handleChange}
-                      min="1"
-                      max="10"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Otázek na kolo
-                    </label>
-                    <input
-                      type="number"
-                      name="questionsPerRound"
-                      value={quizConfig.questionsPerRound}
-                      onChange={handleChange}
-                      min="1"
-                      max="50"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="rounded border bg-white p-6">
-                <h2 className="text-lg font-semibold mb-4">Náhled kvízu</h2>
-                
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-900 text-white rounded-lg">
-                    <div className="text-xl font-bold mb-2">{quizConfig.name || "Název kvízu"}</div>
-                    <div className="text-gray-300">{quizConfig.description || "Popis kvízu..."}</div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <div className="text-sm text-gray-600">Kola</div>
-                      <div className="text-2xl font-bold">{quizConfig.rounds}</div>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <div className="text-sm text-gray-600">Otázek celkem</div>
-                      <div className="text-2xl font-bold">{quizConfig.rounds * quizConfig.questionsPerRound}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-4 text-red-300 text-sm">
+            {error}
           </div>
         )}
 
-        {/* Step 2: Questions */}
-        {step === 2 && (
-          <div className="rounded border bg-white p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <ListOrdered className="h-5 w-5" />
-              Výběr otázek
-            </h2>
-
-            <div className="space-y-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Demo režim</div>
-                <div className="font-medium">V produkční verzi by zde byl výběr otázek z databáze</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Můžete pokračovat krokem 3 - nastavení kvízu
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="p-4 border border-gray-300 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                        Lehká
-                      </span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
-                        Jednoduchá
-                      </span>
-                    </div>
-                    <div className="font-medium mb-1">Ukázková otázka #{i}</div>
-                    <div className="text-sm text-gray-600">Kategorie: Piva</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Základní info */}
+        <div className={sectionCls}>
+          <div className="flex items-center gap-2 mb-1">
+            <PlayCircle size={16} className="text-violet-400" />
+            <span className="text-sm font-bold text-gray-300">Základní informace</span>
           </div>
-        )}
-
-        {/* Step 3: Settings */}
-        {step === 3 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div className="rounded border bg-white p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Nastavení kvízu
-                </h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Čas na otázku (sekundy)
-                    </label>
-                    <input
-                      type="number"
-                      name="timePerQuestion"
-                      value={quizConfig.timePerQuestion}
-                      onChange={handleChange}
-                      min="10"
-                      max="300"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        name="showAnswers"
-                        checked={quizConfig.showAnswers}
-                        onChange={handleChange}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <div className="font-medium text-gray-700">Zobrazovat správné odpovědi</div>
-                        <div className="text-sm text-gray-500">Po každé otázce ukázat správnou odpověď</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        name="randomize"
-                        checked={quizConfig.randomize}
-                        onChange={handleChange}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <div className="font-medium text-gray-700">Náhodné pořadí otázek</div>
-                        <div className="text-sm text-gray-500">Každé spuštění kvízu v jiném pořadí</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="rounded border bg-white p-6">
-                <h3 className="text-lg font-semibold mb-4">Shrnutí</h3>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <div className="text-sm text-gray-600">Otázek celkem</div>
-                      <div className="text-2xl font-bold">{quizConfig.rounds * quizConfig.questionsPerRound}</div>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <div className="text-sm text-gray-600">Celkový čas</div>
-                      <div className="text-2xl font-bold">
-                        {Math.round((quizConfig.rounds * quizConfig.questionsPerRound * quizConfig.timePerQuestion) / 60)} min
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <div className="font-medium mb-2">Sekvence kvízu</div>
-                    <div className="text-sm text-gray-600">
-                      {quizConfig.rounds} kol × {quizConfig.questionsPerRound} otázek
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div>
+            <label className={labelCls}>Název kvízu <span className="text-red-400">*</span></label>
+            <input value={form.name} onChange={e => set("name")(e.target.value)}
+              className={inputCls} placeholder="Např. Hospodský kvíz #1…" autoFocus />
           </div>
-        )}
-
-        {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t">
-          <button
-            type="button"
-            onClick={() => setStep(prev => Math.max(1, prev - 1))}
-            disabled={step === 1}
-            className={`px-6 py-2 rounded-lg border ${
-              step === 1
-                ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Předchozí
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (step < 3) {
-                setStep(prev => prev + 1)
-              }
-            }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            {step < 3 ? "Další krok" : "Dokončit"}
-          </button>
+          <div>
+            <label className={labelCls}>Popis</label>
+            <textarea value={form.description} onChange={e => set("description")(e.target.value)}
+              rows={3} className={inputCls + " resize-none"} placeholder="Volitelný popis kvízu…" />
+          </div>
         </div>
-      </form>
+
+        {/* Stav + šablona */}
+        <div className={sectionCls}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Stav</label>
+              <select value={form.status} onChange={e => set("status")(e.target.value)} className={selectCls}>
+                <option value="draft"     className="bg-[#191b2e]">Návrh</option>
+                <option value="published" className="bg-[#191b2e]">Publikován</option>
+                <option value="archived"  className="bg-[#191b2e]">Archivován</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Šablona vzhledu</label>
+              <select value={form.template_id} onChange={e => set("template_id")(e.target.value)} className={selectCls}>
+                <option value="" className="bg-[#191b2e]">— bez šablony —</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id} className="bg-[#191b2e]">{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom actions */}
+        <div className="flex items-center gap-3 pt-2">
+          <button onClick={handleSave} disabled={saving || !form.name.trim()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 disabled:opacity-50 transition-all active:scale-95">
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {isEdit ? "Uložit změny" : "Vytvořit kvíz"}
+          </button>
+          <Link href="/admin/quizzes"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">
+            Zrušit
+          </Link>
+        </div>
+      </div>
     </div>
+  )
+}
+
+export default function NewQuizPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center py-32">
+        <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <QuizFormInner />
+    </Suspense>
   )
 }
