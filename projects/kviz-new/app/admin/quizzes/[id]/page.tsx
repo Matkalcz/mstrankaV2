@@ -1,12 +1,12 @@
 // app/admin/quizzes/[id]/page.tsx — Sestavovač kvízu
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Play, Save, Loader2, Plus, Trash2, GripVertical,
   FileText, Flag, Minus, HelpCircle, Search, X, ChevronDown, Check,
-  SlidersHorizontal, QrCode
+  SlidersHorizontal, QrCode, LayoutTemplate
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,19 +15,26 @@ import Link from 'next/link'
 type SlideType = 'page' | 'round_start' | 'separator' | 'question' | 'qr_page'
 
 interface SlideItem {
-  _key: string   // lokální klíč pro React
+  _key: string
   type: SlideType
-  // page
   title?: string
   content?: string
-  // round_start
+  templatePageId?: string   // odkaz na page.id v šabloně
   roundNumber?: number
   subtitle?: string
-  // separator
-  // question
   questionId?: string
   questionText?: string
   questionType?: string
+}
+
+interface TemplateData {
+  id: string
+  name: string
+  config: {
+    pages?: { id: string; name: string }[]
+    separator?: { name: string }
+    qrPage?: { name: string }
+  } | null
 }
 
 interface QuestionData {
@@ -63,7 +70,7 @@ const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; 
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  simple: 'Otázka', ab: 'AB otázka', abcdef: 'AB otázka', bonus: 'Bonusová', audio: 'Audio', video: 'Video'
+  simple: 'Prostá', ab: 'A/B', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video'
 }
 const DIFF_LABELS: Record<string, string> = { easy: 'Lehká', medium: 'Střední', hard: 'Těžká' }
 const DIFF_COLORS: Record<string, string> = {
@@ -249,6 +256,86 @@ function QuestionModal({ questions, onSelect, onClose }: {
   )
 }
 
+// ─── Modal výběru šablony ─────────────────────────────────────────────────────
+
+function TemplateModal({ templates, currentId, onSelect, onClose }: {
+  templates: TemplateData[]
+  currentId?: string
+  onSelect: (t: TemplateData | null) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#13152a] border border-white/[0.1] rounded-2xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
+          <div>
+            <h2 className="text-lg font-bold text-white">Vybrat šablonu</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Šablona určuje vzhled a dostupné typy stránek</p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+        </div>
+
+        <div className="divide-y divide-white/[0.06] max-h-[60vh] overflow-y-auto">
+          {/* Bez šablony */}
+          <button onClick={() => onSelect(null)}
+            className={`w-full text-left px-6 py-4 hover:bg-white/[0.04] transition-colors flex items-center justify-between ${!currentId ? 'bg-white/[0.04]' : ''}`}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/[0.07] border border-white/[0.1] flex items-center justify-center shrink-0">
+                <X size={14} className="text-gray-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-300">Bez šablony</p>
+                <p className="text-xs text-gray-600">Generické typy slidů</p>
+              </div>
+            </div>
+            {!currentId && <Check size={15} className="text-violet-400" />}
+          </button>
+
+          {templates.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <p className="text-gray-500 text-sm">Žádná šablona nenalezena.</p>
+              <Link href="/admin/templates/new" className="text-xs text-violet-400 hover:text-violet-300 mt-1 inline-block">
+                Vytvořit šablonu →
+              </Link>
+            </div>
+          ) : templates.map(t => {
+            const isSel = currentId === t.id
+            const pc = t.config?.pages?.length ?? 0
+            return (
+              <button key={t.id} onClick={() => onSelect(t)}
+                className={`w-full text-left px-6 py-4 hover:bg-white/[0.04] transition-colors flex items-center justify-between ${isSel ? 'bg-violet-500/10' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${isSel ? 'bg-violet-500/30 border-violet-500/40' : 'bg-white/[0.07] border-white/[0.1]'}`}>
+                    <LayoutTemplate size={14} className={isSel ? 'text-violet-300' : 'text-gray-500'} />
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold ${isSel ? 'text-white' : 'text-gray-200'}`}>{t.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {pc} {pc === 1 ? 'stránka' : pc < 5 ? 'stránky' : 'stránek'}
+                      {t.config?.separator ? ' · oddělovač' : ''}
+                      {t.config?.qrPage ? ' · QR' : ''}
+                    </p>
+                  </div>
+                </div>
+                {isSel && <Check size={15} className="text-violet-400" />}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="px-6 py-3 border-t border-white/[0.08] flex justify-between items-center">
+          <Link href="/admin/templates/new"
+            className="text-xs text-gray-500 hover:text-violet-400 transition-colors flex items-center gap-1">
+            <Plus size={12} /> Nová šablona
+          </Link>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors">Zavřít</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Inline editor slide ───────────────────────────────────────────────────────
 
 function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Partial<SlideItem>) => void }) {
@@ -307,33 +394,51 @@ export default function QuizBuilderPage() {
 
   const [quiz, setQuiz] = useState<QuizData | null>(null)
   const [allQuestions, setAllQuestions] = useState<QuestionData[]>([])
+  const [allTemplates, setAllTemplates] = useState<TemplateData[]>([])
+  const [activeTemplate, setActiveTemplate] = useState<TemplateData | null>(null)
   const [items, setItems] = useState<SlideItem[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
 
-  // Load quiz + questions
+  // Load quiz + questions + templates
   useEffect(() => {
     Promise.all([
       fetch(`/api/quizzes/${quizId}`).then(r => r.json()),
       fetch('/api/questions').then(r => r.json()),
-    ]).then(([quizData, qData]) => {
+      fetch('/api/templates').then(r => r.json()),
+    ]).then(([quizData, qData, tData]) => {
       setQuiz(quizData)
       const qs = Array.isArray(qData) ? qData : []
       setAllQuestions(qs)
       setItems(sequenceToItems(quizData.sequence || [], qs))
+      const ts: TemplateData[] = Array.isArray(tData) ? tData : []
+      setAllTemplates(ts)
+      if (quizData.template_id) {
+        const found = ts.find(t => t.id === quizData.template_id)
+        if (found) setActiveTemplate(found)
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [quizId])
 
+  // ── Šablona ────────────────────────────────────────────────────────────────
+
+  const handleSelectTemplate = (t: TemplateData | null) => {
+    setActiveTemplate(t)
+    setQuiz(prev => prev ? { ...prev, template_id: t?.id } : prev)
+    setShowTemplateModal(false)
+  }
+
   // ── Slide akce ─────────────────────────────────────────────────────────────
 
-  const addSlide = (type: SlideType) => {
-    const newItem: SlideItem = { _key: uid(), type }
-    if (type === 'round_start') newItem.roundNumber = 1
+  const addSlide = (type: SlideType, extra: Partial<SlideItem> = {}) => {
+    const newItem: SlideItem = { _key: uid(), type, ...extra }
+    if (type === 'round_start' && !newItem.roundNumber) newItem.roundNumber = 1
     setItems(prev => [...prev, newItem])
   }
 
@@ -380,7 +485,7 @@ export default function QuizBuilderPage() {
       await fetch(`/api/quizzes/${quizId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...quiz, sequence: itemsToSequence(items) }),
+        body: JSON.stringify({ ...quiz, template_id: activeTemplate?.id ?? null, sequence: itemsToSequence(items) }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -414,10 +519,22 @@ export default function QuizBuilderPage() {
               className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-2 transition-colors">
               <ArrowLeft size={12} /> Zpět na kvízy
             </Link>
-            <h1 className="text-2xl font-bold text-white">{quiz.name}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {items.length} slidů · {questionCount} otázek · {roundCount} kol
-            </p>
+            <h1 className="text-2xl font-bold text-white truncate">{quiz.name}</h1>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <p className="text-sm text-gray-500">
+                {items.length} slidů · {questionCount} otázek · {roundCount} kol
+              </p>
+              <button onClick={() => setShowTemplateModal(true)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                  activeTemplate
+                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-300 hover:bg-violet-500/25'
+                    : 'bg-white/[0.05] border-white/[0.1] text-gray-500 hover:text-gray-300 hover:bg-white/[0.08]'
+                }`}>
+                <LayoutTemplate size={11} />
+                {activeTemplate ? activeTemplate.name : 'Bez šablony'}
+                <ChevronDown size={11} className="opacity-60" />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push(`/play/${quizId}`)}
@@ -441,25 +558,30 @@ export default function QuizBuilderPage() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── Levý panel — paleta ─────────────────────────────────────────────── */}
-        <div className="w-56 shrink-0 border-r border-white/[0.07] bg-[#0d0f1c] flex flex-col">
-          <div className="px-4 py-4 border-b border-white/[0.07]">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Přidat prvek</p>
+        <div className="w-56 shrink-0 border-r border-white/[0.07] bg-[#0d0f1c] flex flex-col overflow-y-auto">
+
+          {/* Šablona selector */}
+          <div className="px-4 pt-4 pb-3 border-b border-white/[0.07]">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Šablona</p>
+            <button onClick={() => setShowTemplateModal(true)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
+                activeTemplate
+                  ? 'bg-violet-500/10 border-violet-500/25 text-violet-300 hover:bg-violet-500/20'
+                  : 'bg-white/[0.04] border-white/[0.1] text-gray-500 hover:text-gray-300 hover:bg-white/[0.07]'
+              }`}>
+              <LayoutTemplate size={13} className="shrink-0" />
+              <span className="truncate flex-1 text-left">{activeTemplate ? activeTemplate.name : 'Vybrat šablonu…'}</span>
+              <ChevronDown size={11} className="opacity-50 shrink-0" />
+            </button>
+          </div>
+
+          {/* Struktura (vždy dostupná) */}
+          <div className="px-4 py-3 border-b border-white/[0.07]">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Struktura</p>
             <div className="space-y-1.5">
-              <button onClick={() => addSlide('round_start')}
+              <button onClick={() => addSlide('round_start', { roundNumber: 1 })}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-colors text-sm font-medium">
                 <Flag size={15} /> Start kola
-              </button>
-              <button onClick={() => addSlide('page')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-gray-300 hover:bg-white/[0.08] transition-colors text-sm font-medium">
-                <FileText size={15} /> Stránka
-              </button>
-              <button onClick={() => addSlide('separator')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium">
-                <Minus size={15} /> Oddělovač
-              </button>
-              <button onClick={() => addSlide('qr_page')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors text-sm font-medium">
-                <QrCode size={15} /> QR stránka
               </button>
               <button onClick={() => setShowModal(true)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors text-sm font-medium">
@@ -468,8 +590,62 @@ export default function QuizBuilderPage() {
             </div>
           </div>
 
+          {/* Stránky — ze šablony nebo generické */}
+          <div className="px-4 py-3 border-b border-white/[0.07]">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+              {activeTemplate ? 'Prvky šablony' : 'Stránky'}
+            </p>
+            <div className="space-y-1.5">
+              {activeTemplate ? (
+                <>
+                  {(activeTemplate.config?.pages ?? []).length > 0
+                    ? (activeTemplate.config?.pages ?? []).map(p => (
+                      <button key={p.id}
+                        onClick={() => addSlide('page', { templatePageId: p.id, title: p.name })}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-500/10 border border-gray-500/20 text-gray-300 hover:bg-gray-500/20 transition-colors text-sm font-medium">
+                        <FileText size={15} className="shrink-0" />
+                        <span className="truncate">{p.name}</span>
+                      </button>
+                    ))
+                    : <button onClick={() => addSlide('page')}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-500/10 border border-gray-500/20 text-gray-300 hover:bg-gray-500/20 transition-colors text-sm font-medium">
+                        <FileText size={15} /> Stránka
+                      </button>
+                  }
+                  <button onClick={() => addSlide('separator')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium">
+                    <Minus size={15} className="shrink-0" />
+                    <span className="truncate">{activeTemplate.config?.separator?.name || 'Oddělovač'}</span>
+                  </button>
+                  {activeTemplate.config?.qrPage && (
+                    <button onClick={() => addSlide('qr_page')}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors text-sm font-medium">
+                      <QrCode size={15} className="shrink-0" />
+                      <span className="truncate">{activeTemplate.config.qrPage.name || 'QR stránka'}</span>
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button onClick={() => addSlide('page')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-500/10 border border-gray-500/20 text-gray-300 hover:bg-gray-500/20 transition-colors text-sm font-medium">
+                    <FileText size={15} /> Stránka
+                  </button>
+                  <button onClick={() => addSlide('separator')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium">
+                    <Minus size={15} /> Oddělovač
+                  </button>
+                  <button onClick={() => addSlide('qr_page')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors text-sm font-medium">
+                    <QrCode size={15} /> QR stránka
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* Stats */}
-          <div className="px-4 py-4 space-y-3">
+          <div className="px-4 py-4 space-y-2.5">
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sekvence</p>
             {[
               { label: 'Otázek',  value: questionCount, color: 'text-blue-300' },
@@ -495,7 +671,16 @@ export default function QuizBuilderPage() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
               <SlidersHorizontal size={40} className="text-gray-700" />
-              <p className="text-gray-500">Sekvence je prázdná.<br />Přidej prvky z levého panelu.</p>
+              <div>
+                <p className="text-gray-500">Sekvence je prázdná.</p>
+                <p className="text-gray-600 text-sm mt-1">Přidej prvky z levého panelu.</p>
+              </div>
+              {!activeTemplate && (
+                <button onClick={() => setShowTemplateModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-colors text-sm">
+                  <LayoutTemplate size={15} /> Vybrat šablonu
+                </button>
+              )}
               <button onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 transition-colors text-sm font-semibold">
                 <Plus size={15} /> Přidat první otázku
@@ -508,6 +693,9 @@ export default function QuizBuilderPage() {
                 const Icon = meta.icon
                 const isDragging = dragIndex === index
                 const isOver = dragOver === index
+                const templatePageName = item.templatePageId
+                  ? activeTemplate?.config?.pages?.find(p => p.id === item.templatePageId)?.name
+                  : null
 
                 return (
                   <div
@@ -533,7 +721,7 @@ export default function QuizBuilderPage() {
                         <div className="flex items-center gap-2 mb-0.5">
                           <Icon size={14} className={meta.color} />
                           <span className={`text-[11px] font-bold uppercase tracking-wider ${meta.color}`}>
-                            {meta.label}
+                            {templatePageName || meta.label}
                           </span>
                           {item.type === 'question' && item.questionType && (
                             <span className="text-[10px] text-gray-500 font-medium">
@@ -569,12 +757,19 @@ export default function QuizBuilderPage() {
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <QuestionModal
           questions={allQuestions}
           onSelect={addQuestions}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {showTemplateModal && (
+        <TemplateModal
+          templates={allTemplates}
+          currentId={activeTemplate?.id}
+          onSelect={handleSelectTemplate}
+          onClose={() => setShowTemplateModal(false)}
         />
       )}
     </div>
