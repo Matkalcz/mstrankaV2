@@ -1,122 +1,96 @@
-'use client'
+// app/admin/page.tsx — Dashboard
+"use client"
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { FileQuestion, Tag, BarChart3, PlusCircle } from 'lucide-react'
-
-interface DashboardStats {
-  totalQuizzes: number
-  activeQuizzes: number
-  totalQuestions: number
-  totalCategories: number
-}
-
-interface RecentActivity {
-  id: string
-  label: string
-  time: string
-}
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { HelpCircle, Tag, PlayCircle, Palette, Plus, ArrowRight, Zap } from "lucide-react"
+import { AdminPageHeader, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalQuizzes: 0,
-    activeQuizzes: 0,
-    totalQuestions: 0,
-    totalCategories: 0,
-  })
+  const [stats, setStats] = useState({ questions: 0, tags: 0, quizzes: 0, templates: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const [quizzesRes, questionsRes, categoriesRes] = await Promise.all([
-          fetch('/api/quizzes'),
-          fetch('/api/questions'),
-          fetch('/api/categories'),
-        ])
-
-        const [quizzes, questions, categories] = await Promise.all([
-          quizzesRes.ok ? quizzesRes.json() : [],
-          questionsRes.ok ? questionsRes.json() : [],
-          categoriesRes.ok ? categoriesRes.json() : [],
-        ])
-
-        setStats({
-          totalQuizzes: Array.isArray(quizzes) ? quizzes.length : 0,
-          activeQuizzes: Array.isArray(quizzes)
-            ? quizzes.filter((q: { status: string }) => q.status === 'published').length
-            : 0,
-          totalQuestions: Array.isArray(questions) ? questions.length : 0,
-          totalCategories: Array.isArray(categories) ? categories.length : 0,
-        })
-      } catch (err) {
-        console.error('Chyba při načítání statistik:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadStats()
+    Promise.all([
+      fetch("/api/questions").then(r => r.json()).catch(() => []),
+      fetch("/api/tags").then(r => r.json()).catch(() => []),
+      fetch("/api/quizzes").then(r => r.json()).catch(() => []),
+      fetch("/api/templates").then(r => r.json()).catch(() => []),
+    ]).then(([questions, tags, quizzes, templates]) => {
+      setStats({
+        questions: Array.isArray(questions) ? questions.length : 0,
+        tags:      Array.isArray(tags)      ? tags.length      : 0,
+        quizzes:   Array.isArray(quizzes)   ? quizzes.length   : 0,
+        templates: Array.isArray(templates) ? templates.length : 0,
+      })
+    }).finally(() => setLoading(false))
   }, [])
 
-  const statCards = [
-    { label: 'Celkem kvízů', value: stats.totalQuizzes, icon: FileQuestion, color: 'text-blue-600' },
-    { label: 'Aktivní kvízy', value: stats.activeQuizzes, icon: FileQuestion, color: 'text-green-600' },
-    { label: 'Otázek v DB', value: stats.totalQuestions, icon: BarChart3, color: 'text-purple-600' },
-    { label: 'Kategorie', value: stats.totalCategories, icon: Tag, color: 'text-orange-600' },
+  const quickActions = [
+    { label: "Nová otázka",  href: "/admin/questions/new", icon: HelpCircle, color: "violet" as const },
+    { label: "Nová šablona", href: "/admin/templates/new", icon: Palette,    color: "cyan"   as const },
+    { label: "Nový kvíz",    href: "/admin/quizzes/new",   icon: PlayCircle,  color: "amber"  as const },
+    { label: "Nový tag",     href: "/admin/categories",    icon: Tag,         color: "emerald" as const },
+  ]
+
+  const navCards = [
+    { label: "Otázky",   href: "/admin/questions",  icon: HelpCircle, desc: "Správa otázek všech typů" },
+    { label: "Tagy",     href: "/admin/categories", icon: Tag,        desc: "Kategorizace otázek" },
+    { label: "Kvízy",    href: "/admin/quizzes",    icon: PlayCircle, desc: "Sestavování a přehrávání" },
+    { label: "Šablony",  href: "/admin/templates",  icon: Palette,    desc: "Vzhled prezentací" },
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Přehled aktivit a statistik kvízového systému</p>
-      </div>
+    <div>
+      <AdminPageHeader
+        title="Dashboard"
+        subtitle="Přehled hospodského kvízu"
+      />
 
-      {/* Stat cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <div key={card.label} className="rounded-lg border bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">{card.label}</p>
-              <card.icon className={`h-5 w-5 ${card.color}`} />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-gray-900">
-              {loading ? (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-gray-200" />
-              ) : (
-                card.value
-              )}
-            </p>
+      <div className="px-8 py-6 space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Otázek celkem"  value={loading ? "…" : stats.questions} icon={HelpCircle} color="violet" />
+          <StatCard label="Tagů"            value={loading ? "…" : stats.tags}      icon={Tag}        color="cyan"   />
+          <StatCard label="Kvízů"           value={loading ? "…" : stats.quizzes}   icon={PlayCircle}  color="amber"  />
+          <StatCard label="Šablon"          value={loading ? "…" : stats.templates} icon={Palette}    color="emerald" />
+        </div>
+
+        {/* Quick actions */}
+        <DarkCard>
+          <div className="px-6 py-4 border-b border-white/[0.06]">
+            <h2 className="text-sm font-bold text-gray-300 flex items-center gap-2">
+              <Zap size={15} className="text-violet-400" /> Rychlé akce
+            </h2>
           </div>
-        ))}
-      </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.04]">
+            {quickActions.map(a => (
+              <Link key={a.href} href={a.href}
+                className="flex flex-col items-center gap-2 px-4 py-6 bg-[#191b2e] hover:bg-violet-500/10 transition-colors group">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">
+                  <a.icon size={20} className="text-violet-400" />
+                </div>
+                <span className="text-sm font-semibold text-gray-300 group-hover:text-white transition-colors">{a.label}</span>
+              </Link>
+            ))}
+          </div>
+        </DarkCard>
 
-      {/* Quick actions */}
-      <div className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Rychlé akce</h2>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Link
-            href="/admin/quizzes/new"
-            className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-700 hover:bg-blue-100 transition-colors"
-          >
-            <PlusCircle className="h-5 w-5" />
-            <span className="font-medium">Vytvořit kvíz</span>
-          </Link>
-          <Link
-            href="/admin/questions"
-            className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-green-700 hover:bg-green-100 transition-colors"
-          >
-            <PlusCircle className="h-5 w-5" />
-            <span className="font-medium">Přidat otázku</span>
-          </Link>
-          <Link
-            href="/admin/categories"
-            className="flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3 text-purple-700 hover:bg-purple-100 transition-colors"
-          >
-            <Tag className="h-5 w-5" />
-            <span className="font-medium">Správa kategorií</span>
-          </Link>
+        {/* Navigation cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {navCards.map(c => (
+            <Link key={c.href} href={c.href}
+              className="flex items-center gap-4 px-6 py-5 bg-[#191b2e] border border-white/[0.08] rounded-xl hover:border-violet-500/30 hover:bg-violet-500/5 transition-all group">
+              <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 group-hover:bg-violet-500/20 transition-colors">
+                <c.icon size={22} className="text-violet-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-white text-sm">{c.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{c.desc}</div>
+              </div>
+              <ArrowRight size={16} className="text-gray-600 group-hover:text-violet-400 transition-colors shrink-0" />
+            </Link>
+          ))}
         </div>
       </div>
     </div>
