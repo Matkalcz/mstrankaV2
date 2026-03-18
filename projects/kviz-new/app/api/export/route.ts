@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       options: q.options ? JSON.parse(q.options) : [],
       bonusAnswers: q.type === 'bonus' ? (q.options ? JSON.parse(q.options).map((o: any) => o.text) : []) : undefined,
       mediaUrl: q.media_url,
-      mediaType: q.type === 'audio' ? 'audio' : q.type === 'video' ? 'video' : undefined,
+      mediaType: (q.type === 'audio' ? 'audio' : q.type === 'video' ? 'video' : undefined) as 'audio' | 'video' | undefined,
       questionNumber: idx + 1,
       roundNumber: q.round_number || 1,
       difficulty: q.difficulty,
