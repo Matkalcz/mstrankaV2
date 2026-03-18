@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { quizzes } from '@/lib/database'
+import { quizzes, questions as questionsDb } from '@/lib/database'
 
 // Define types for database quizzes
 interface DatabaseQuiz {
@@ -47,20 +47,42 @@ export async function GET(
             )
         }
 
-        // Get quiz questions
-        const quizQuestions = quizzes.getQuestions(id) as QuizQuestion[]
+        // Parse sequence first
+        const sequence = quiz.sequence ? JSON.parse(quiz.sequence) : []
+
+        // Collect all question IDs from the sequence
+        const seqQuestionIds: string[] = sequence
+            .filter((item: any) => item.type === 'question' && item.questionId)
+            .map((item: any) => item.questionId as string)
+
+        // Fetch questions referenced in sequence (primary source)
+        const seqQuestions = seqQuestionIds
+            .map(qid => questionsDb.getById(qid) as any)
+            .filter(Boolean)
+            .map((q: any) => ({
+                ...q,
+                options: q.options
+                    ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+                    : []
+            }))
+
+        // Fall back to quiz_questions table if sequence has no questions
+        const fallbackQuestions = seqQuestions.length === 0
+            ? (quizzes.getQuestions(id) as QuizQuestion[]).map(q => ({
+                ...q,
+                options: q.options ? JSON.parse(q.options) : []
+              }))
+            : []
+
+        const allQuestions = seqQuestions.length > 0 ? seqQuestions : fallbackQuestions
 
         // Parse sequence and options JSON
         const parsedQuiz = {
             ...quiz,
-            sequence: quiz.sequence ? JSON.parse(quiz.sequence) : [],
-            questions: quizQuestions.map(q => ({
-                ...q,
-                options: q.options ? JSON.parse(q.options) : []
-            })),
-            questionCount: quizQuestions.length,
-            roundCount: quizQuestions.length > 0 ?
-                Math.max(...quizQuestions.map(q => q.round_number || 1)) : 0
+            sequence,
+            questions: allQuestions,
+            questionCount: allQuestions.length,
+            roundCount: 1
         }
 
         return NextResponse.json(parsedQuiz)
