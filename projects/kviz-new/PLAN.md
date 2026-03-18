@@ -181,30 +181,35 @@ Stránka editace kvízu má dva panely:
 
 ---
 
-## Fáze 5 — Fullscreen přehrávač pro projektor a diváky + QR kód
-**Soubor:** `app/watch/[id]/page.tsx`
+## Fáze 5 — Přehrávač (moderátor) + Veřejný fullscreen + QR kód
 
 ### Architektura
-- **Moderátor** ovládá kvíz přímo z adminu (`/admin/quizzes/[id]` — sestavovač sekvence, tlačítka vpřed/zpět)
-- **Projektor + diváci** sledují totéž na `/watch/[id]` — fullscreen bez jakéhokoli UI
+- **Moderátor** ovládá kvíz v přehrávači `/play/[id]` — s tlačítky vpřed/zpět, informační lištou
+- **Projektor + diváci** sledují `/watch/[id]` — čistý fullscreen bez jakéhokoli UI
+- Moderátor otevře `/watch/[id]` na projektoru a diváci si ho naskenují z QR kódu
 
-### 5.1 Fullscreen stránka (`/watch/[id]`)
-- Veřejná URL, bez přihlášení, určená pro TV/projektor i telefony diváků
-- Čistý fullscreen: jen aktuální slide, žádné ovladače, slidery, admin prvky
-- Synchronizuje se s moderátorem (polling nebo SSE — moderátor posílá stav do DB)
+### 5.1 Moderátorský přehrávač (`/play/[id]`)
+- Renderuje `SimpleQuizPlayer` na celou obrazovku
+- Ovládání: tlačítka vpřed/zpět + klávesové zkratky (`→`, `←`, `ESC`)
+- Informační lišta: číslo slidu, typ, kolo (toggle klávesou `H`)
+- Tlačítko **"👁 Veřejný pohled"** → otevře `/watch/[id]` v novém okně
+
+### 5.2 Veřejný fullscreen (`/watch/[id]`)
+- Bez přihlášení, určeno pro TV/projektor i telefony diváků
+- Čistý fullscreen: jen aktuální slide, žádné ovladače ani admin prvky
+- Synchronizuje stav s moderátorem (polling nebo SSE)
 - URL formát: `https://kviz.michaljanda.com/watch/[quiz-id]`
 
-### 5.2 QR kód na startovním slidu
-- Na úvodním slidu kvízu (před první otázkou) se zobrazí velký QR kód
-- QR kód obsahuje URL `/watch/[id]` — diváci naskenují a otevřou na telefonu
-- Generován na klientu (`qrcode.react`)
-- Dostatečně velký pro naskenování z dálky (min. 250×250 px)
+### 5.3 QR kód na startovním slidu
+- Na úvodním slidu kvízu se zobrazí velký QR kód s URL `/watch/[id]`
+- Diváci naskenují a sledují kvíz na svém telefonu
+- Generován na klientu (`qrcode.react`), min. 250×250 px
 
-### 5.3 Tlačítko ve výpisu kvízů (`/admin/quizzes`)
-- Tlačítko **"👁 Spustit"** na každém řádku → otevře `/watch/[id]` v novém okně (`target="_blank"`)
-- Existující tlačítko Play ve výpisu nahradit nebo rozšířit o tento odkaz
+### 5.4 Odkaz ve výpisu kvízů (`/admin/quizzes`)
+- Tlačítko **"▶ Spustit"** → otevře `/play/[id]` v novém okně
+- Tlačítko **"👁 Veřejný"** → otevře `/watch/[id]` v novém okně
 
-**Odhadovaná náročnost: 3–5 hodin**
+**Odhadovaná náročnost: 4–6 hodin**
 
 ---
 
@@ -243,7 +248,7 @@ Stránka editace kvízu má dva panely:
 | 2 | Kategorie + šablony | 3–5 h | 🔴 Kritická (NEXT) |
 | 3 | Přehrávač (refaktor) | 5–8 h | 🔴 Kritická |
 | 4 | Sestavovač kvízu | 6–10 h | 🟠 Vysoká |
-| 5 | Fullscreen /watch + QR kód | 3–5 h | 🟠 Vysoká |
+| 5 | Přehrávač + /watch + QR | 4–6 h | 🟠 Vysoká |
 | 6 | Export PPTX | 4–6 h | 🟡 Střední |
 | 7 | Stabilizace | 2–3 h | 🟡 Střední |
 | **Celkem** | | **26–41 h** | |
