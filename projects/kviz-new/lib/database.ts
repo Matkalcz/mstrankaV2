@@ -284,18 +284,23 @@ export const categories = tags
 // ---------------------------------------------------------------------------
 function parseTagCols(row: any) {
   if (!row) return null
-  const tag_ids: string[] = row.tag_ids_csv ? row.tag_ids_csv.split(',') : []
-  const tag_names: string[] = row.tag_names_csv ? row.tag_names_csv.split('|||') : []
-  const tagsArr = tag_ids.map((id, i) => ({ id, name: tag_names[i] || '' }))
-  // Remove raw csv cols from returned object
-  const { tag_ids_csv, tag_names_csv, ...rest } = row
+  const tag_ids: string[]    = row.tag_ids_csv    ? row.tag_ids_csv.split(',')     : []
+  const tag_names: string[]  = row.tag_names_csv  ? row.tag_names_csv.split('|||') : []
+  const tag_colors: string[] = row.tag_colors_csv ? row.tag_colors_csv.split('|||') : []
+  const tagsArr = tag_ids.map((id, i) => ({
+    id,
+    name:  tag_names[i]  || '',
+    color: tag_colors[i] || '',
+  }))
+  const { tag_ids_csv, tag_names_csv, tag_colors_csv, ...rest } = row
   return { ...rest, tag_ids, tag_names, tags: tagsArr }
 }
 
 const QUESTIONS_SELECT = `
   SELECT q.*,
-    GROUP_CONCAT(t.id, ',')   AS tag_ids_csv,
-    GROUP_CONCAT(t.name, '|||') AS tag_names_csv
+    GROUP_CONCAT(t.id, ',')     AS tag_ids_csv,
+    GROUP_CONCAT(t.name, '|||') AS tag_names_csv,
+    GROUP_CONCAT(t.color, '|||') AS tag_colors_csv
   FROM questions q
   LEFT JOIN question_tags qt ON q.id = qt.question_id
   LEFT JOIN tags t ON qt.tag_id = t.id

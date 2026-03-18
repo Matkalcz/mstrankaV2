@@ -93,7 +93,7 @@ function QuizFormInner() {
   }
 
   const inputCls  = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-  const selectCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
+  const selectCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer [color-scheme:dark]"
   const labelCls  = "block text-xs font-semibold text-gray-400 mb-1.5"
   const sectionCls = "bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 space-y-4"
 

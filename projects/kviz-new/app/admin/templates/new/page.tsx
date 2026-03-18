@@ -183,7 +183,7 @@ function TemplateFormInner() {
     }
   }
 
-  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+  const inputCls = "w-full rounded-lg border border-white/[0.1] bg-[#191b2e] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
   const sectionCls = "bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 space-y-4"
   const labelCls = "block text-xs font-semibold text-gray-400 mb-1.5"
 
@@ -300,8 +300,8 @@ function TemplateFormInner() {
               <div>
                 <label className={labelCls}>Font</label>
                 <select value={form.fontFamily} onChange={e => set("fontFamily")(e.target.value)}
-                  className={inputCls + " cursor-pointer"}>
-                  {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                  className={inputCls + " cursor-pointer [color-scheme:dark]"}>
+                  {FONTS.map(f => <option key={f} value={f} className="bg-[#191b2e]">{f}</option>)}
                 </select>
               </div>
             </div>
