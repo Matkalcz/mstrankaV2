@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Eye, Info, X, Volume2, Video } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 // ─── Typy ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ interface QuestionData {
   difficulty?: string
 }
 
-type SlideType = 'page' | 'round_start' | 'question' | 'separator'
+type SlideType = 'page' | 'round_start' | 'question' | 'separator' | 'qr_page'
 
 interface Slide {
   type: SlideType
@@ -37,6 +38,7 @@ interface TemplateConfig {
   fontFamily?: string
   questionTypes?: Record<string, { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
   separator?: { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }
+  qrPage?: { bg1?: string; bg2?: string; bgType?: string; bgImage?: string }
   pages?: Array<{ id: string; bg1?: string; bg2?: string; bgType?: string; bgImage?: string }>
 }
 
@@ -52,6 +54,7 @@ function bgFromConfig(cfg: TemplateConfig | null, qType?: string, slideType?: st
   if (!cfg) return {}
   let bg: any = null
   if (slideType === 'separator' && cfg.separator) bg = cfg.separator
+  else if (slideType === 'qr_page' && cfg.qrPage) bg = cfg.qrPage
   else if (qType && cfg.questionTypes?.[qType]) bg = cfg.questionTypes[qType]
   if (!bg) return {}
   if (bg.bgType === 'gradient' && bg.bg1 && bg.bg2)
@@ -237,6 +240,31 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
   )
 }
 
+function QrPageSlide({ slide, quizId }: { slide: Slide; quizId: string }) {
+  const watchUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.host}/watch/${quizId}`
+    : `https://kviz.michaljanda.com/watch/${quizId}`
+  return (
+    <div className="flex h-full">
+      {/* Left half — QR */}
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
+        <div className="bg-white p-5 rounded-3xl shadow-2xl">
+          <QRCodeSVG value={watchUrl} size={280} level="M" />
+        </div>
+        <p className="text-gray-400 text-base text-center font-mono">{watchUrl}</p>
+      </div>
+      {/* Right half — content */}
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
+        {slide.title && <h2 className="text-4xl font-black text-white leading-tight">{slide.title}</h2>}
+        {slide.content && <p className="text-xl text-gray-300 max-w-xl">{slide.content}</p>}
+        {!slide.title && !slide.content && (
+          <p className="text-gray-600 text-lg">Naskenuj QR kód a sleduj kvíz na telefonu</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Hlavní komponenta ────────────────────────────────────────────────────────
 
 export default function PlayPage() {
@@ -354,6 +382,8 @@ export default function PlayPage() {
     ? bgFromConfig(tmpl, slide.question.type)
     : slide.type === 'separator'
     ? bgFromConfig(tmpl, undefined, 'separator')
+    : slide.type === 'qr_page'
+    ? bgFromConfig(tmpl, undefined, 'qr_page')
     : {}
 
   return (
@@ -399,6 +429,7 @@ export default function PlayPage() {
         {slide.type === 'round_start' && <RoundStartSlide slide={slide} />}
         {slide.type === 'separator' && <SeparatorSlide slide={slide} />}
         {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} />}
+        {slide.type === 'qr_page' && <QrPageSlide slide={slide} quizId={quizId} />}
       </div>
 
       {/* Controls */}

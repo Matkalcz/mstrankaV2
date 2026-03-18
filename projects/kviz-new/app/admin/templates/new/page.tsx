@@ -4,8 +4,8 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
-  ArrowLeft, Save, Loader2, Palette, Type, Plus, Trash2,
-  HelpCircle, FileText, Minus, ChevronDown, ChevronRight
+  ArrowLeft, Save, Loader2, Palette, Plus, Trash2,
+  HelpCircle, FileText, Minus, ChevronDown, ChevronRight, QrCode
 } from "lucide-react"
 import Link from "next/link"
 
@@ -38,6 +38,7 @@ interface TemplateConfig {
   questionTypes: Record<string, QuestionTypeConfig>
   pages: PageConfig[]
   separator: { name: string } & BgConfig
+  qrPage: { name: string } & BgConfig
 }
 
 // ─── Výchozí hodnoty ───────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ function makeDefaultConfig(): TemplateConfig {
     ),
     pages: [{ id: "p1", name: "Uvítací stránka", ...DEFAULT_BG }],
     separator: { name: "Opakování odpovědí", ...DEFAULT_BG, bg1: "#0a0a1a" },
+    qrPage: { name: "QR stránka", ...DEFAULT_BG, bg1: "#0d0f2a" },
   }
 }
 
@@ -144,7 +146,7 @@ function bgStyle(bg: BgConfig): React.CSSProperties {
 
 // ─── Sekce šablony ─────────────────────────────────────────────────────────────
 
-type Section = { type: "global" } | { type: "qtype"; key: string } | { type: "page"; id: string } | { type: "separator" }
+type Section = { type: "global" } | { type: "qtype"; key: string } | { type: "page"; id: string } | { type: "separator" } | { type: "qrpage" }
 
 function SectionBlock({ title, color, preview, open, onToggle, children }: {
   title: string; color?: string; preview?: React.ReactNode
@@ -171,6 +173,7 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
     if (active.type === "qtype") return cfg.questionTypes[active.key] ?? DEFAULT_BG
     if (active.type === "page") return cfg.pages.find(p => p.id === active.id) ?? DEFAULT_BG
     if (active.type === "separator") return cfg.separator
+    if (active.type === "qrpage") return cfg.qrPage
     return cfg.questionTypes["abcdef"] ?? DEFAULT_BG
   })()
 
@@ -178,11 +181,13 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
     if (active.type === "qtype") return cfg.questionTypes[active.key]?.name ?? ""
     if (active.type === "page") return cfg.pages.find(p => p.id === active.id)?.name ?? ""
     if (active.type === "separator") return cfg.separator.name
+    if (active.type === "qrpage") return cfg.qrPage.name
     return "Náhled"
   })()
 
   const isSeparator = active.type === "separator"
   const isPage = active.type === "page"
+  const isQrPage = active.type === "qrpage"
 
   return (
     <div className="sticky top-24 rounded-xl overflow-hidden border border-white/[0.08]">
@@ -197,6 +202,19 @@ function Preview({ cfg, active }: { cfg: TemplateConfig; active: Section }) {
             <div className="w-16 h-0.5 rounded-full" style={{ backgroundColor: cfg.accentColor }} />
             <span className="text-lg font-bold" style={{ color: cfg.textColor }}>{cfg.separator.name || "Oddělovač"}</span>
             <div className="w-16 h-0.5 rounded-full" style={{ backgroundColor: cfg.accentColor }} />
+          </div>
+        ) : isQrPage ? (
+          <div className="flex-1 flex">
+            <div className="w-1/2 flex flex-col items-center justify-center gap-3 p-6">
+              <div className="bg-white p-2 rounded-xl">
+                <div className="w-20 h-20 bg-gray-200 rounded" style={{ backgroundImage: 'repeating-linear-gradient(0deg,#ccc 0,#ccc 2px,transparent 0,transparent 6px),repeating-linear-gradient(90deg,#ccc 0,#ccc 2px,transparent 0,transparent 6px)' }} />
+              </div>
+              <span className="text-[10px] opacity-50 font-mono" style={{ color: cfg.textColor }}>QR kód</span>
+            </div>
+            <div className="w-1/2 flex flex-col items-center justify-center gap-2 p-6 text-center border-l border-white/10">
+              <span className="text-sm font-bold" style={{ color: cfg.textColor }}>{cfg.qrPage.name}</span>
+              <span className="text-xs opacity-50" style={{ color: cfg.textColor }}>Naskenuj a sleduj kvíz</span>
+            </div>
           </div>
         ) : isPage ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
@@ -275,6 +293,8 @@ function TemplateFormInner() {
     setCfg(prev => ({ ...prev, questionTypes: { ...prev.questionTypes, [key]: { ...prev.questionTypes[key], ...patch } } }))
   const setSeparator = (patch: Partial<typeof cfg.separator>) =>
     setCfg(prev => ({ ...prev, separator: { ...prev.separator, ...patch } }))
+  const setQrPage = (patch: Partial<typeof cfg.qrPage>) =>
+    setCfg(prev => ({ ...prev, qrPage: { ...prev.qrPage, ...patch } }))
 
   const addPage = () => {
     const id = uid()
@@ -305,6 +325,7 @@ function TemplateFormInner() {
             questionTypes: c.questionTypes ?? prev.questionTypes,
             pages: c.pages ?? prev.pages,
             separator: c.separator ?? prev.separator,
+            qrPage: c.qrPage ?? prev.qrPage,
           }))
         }
       })
@@ -505,6 +526,26 @@ function TemplateFormInner() {
             </div>
             <BgEditor label="Pozadí" value={cfg.separator}
               onChange={patch => setSeparator(patch as any)} />
+          </SectionBlock>
+
+          {/* QR stránka */}
+          <SectionBlock title="QR stránka" color="#06b6d4" open={openSection === "qrpage"}
+            onToggle={() => toggle("qrpage", { type: "qrpage" })}
+            preview={
+              <span className="text-xs text-gray-500 italic mr-1 truncate max-w-[120px]">
+                {cfg.qrPage.name || "QR stránka"}
+              </span>
+            }>
+            <p className="text-xs text-gray-500 leading-relaxed -mt-1 mb-1">
+              Levá polovina zobrazí QR kód s veřejnou adresou kvízu, pravá polovina zobrazí nadpis a text.
+            </p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5">Název (zobrazuje se napříč systémem)</label>
+              <input value={cfg.qrPage.name} onChange={e => setQrPage({ name: e.target.value })}
+                className={inputCls} placeholder="QR stránka…" />
+            </div>
+            <BgEditor label="Pozadí" value={cfg.qrPage}
+              onChange={patch => setQrPage(patch as any)} />
           </SectionBlock>
 
         </div>

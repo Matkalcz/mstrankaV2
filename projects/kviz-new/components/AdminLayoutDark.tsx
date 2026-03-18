@@ -5,7 +5,7 @@
 
 import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, HelpCircle, Tag, PlayCircle,
   Palette, Settings, Play, Plus, ChevronRight
@@ -59,6 +59,7 @@ function NavItem({ href, label, icon: Icon, active }: {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function QuickActions() {
+  const router = useRouter()
   const [lastQuizId, setLastQuizId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -75,7 +76,7 @@ function QuickActions() {
     <div className="px-3 pt-4 pb-3 border-b border-white/[0.07] space-y-1.5">
       {lastQuizId && (
         <button
-          onClick={() => window.open(`/play/${lastQuizId}`, '_blank')}
+          onClick={() => router.push(`/play/${lastQuizId}`)}
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/30 text-[14px] font-bold text-violet-300 hover:text-white transition-colors">
           <Play size={15} className="text-violet-400" /> Spustit kvíz
         </button>

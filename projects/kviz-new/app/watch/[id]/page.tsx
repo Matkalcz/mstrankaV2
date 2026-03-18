@@ -16,7 +16,7 @@ interface QuestionData {
   points: number
 }
 
-type SlideType = 'page' | 'round_start' | 'question' | 'separator'
+type SlideType = 'page' | 'round_start' | 'question' | 'separator' | 'qr_page'
 
 interface Slide {
   type: SlideType
@@ -61,7 +61,7 @@ function buildSlides(quiz: QuizData): Slide[] {
 const optionColors = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 'bg-red-600', 'bg-violet-600', 'bg-pink-600']
 const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
-function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
+function SlideView({ slide, phase, watchUrl }: { slide: Slide; phase: number; watchUrl: string }) {
   const q = slide.question
   const audioRef = useRef<HTMLAudioElement>(null)
 
@@ -91,6 +91,23 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
       <div className="w-32 h-1.5 bg-violet-500 rounded-full" />
       <h2 className="text-5xl font-bold text-violet-300">{slide.title || 'Opakování odpovědí'}</h2>
       <div className="w-32 h-1.5 bg-violet-500 rounded-full" />
+    </div>
+  )
+
+  if (slide.type === 'qr_page') return (
+    <div className="flex h-full">
+      {/* Left half — QR code */}
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
+        <div className="bg-white p-5 rounded-3xl shadow-2xl">
+          <QRCodeSVG value={watchUrl} size={300} level="M" />
+        </div>
+        <p className="text-gray-400 text-lg text-center">{watchUrl}</p>
+      </div>
+      {/* Right half — content */}
+      <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
+        {slide.title && <h2 className="text-5xl font-black text-white leading-tight">{slide.title}</h2>}
+        {slide.content && <p className="text-2xl text-gray-300 max-w-xl">{slide.content}</p>}
+      </div>
     </div>
   )
 
@@ -198,7 +215,11 @@ export default function WatchPage() {
   const [slideIndex, setSlideIndex] = useState(0)
   const [phase, setPhase] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [waiting, setWaiting] = useState(true)
+  const [active, setActive] = useState(false)   // true = moderátor aktivoval kvíz
+
+  const watchUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.host}/watch/${quizId}`
+    : `https://kviz.michaljanda.com/watch/${quizId}`
 
   // Load quiz data once
   useEffect(() => {
@@ -221,7 +242,7 @@ export default function WatchPage() {
         if (state && typeof state.slideIndex === 'number') {
           setSlideIndex(state.slideIndex)
           setPhase(state.phase ?? 0)
-          setWaiting(false)
+          setActive(true)
         }
       } catch {}
     }
@@ -236,45 +257,26 @@ export default function WatchPage() {
     </div>
   )
 
-  if (!quiz) return (
-    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-6 text-white">
-      <div className="text-7xl font-black text-gray-800">404</div>
-      <h1 className="text-2xl font-bold text-gray-300">Kvíz nenalezen</h1>
-      <p className="text-gray-600">Tento kvíz neexistuje nebo byl odstraněn.</p>
+  // Waiting screen — shown when moderator hasn't started yet
+  if (!active || slides.length === 0) return (
+    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white">
+      <div className="text-center space-y-3">
+        <h1 className="text-5xl font-black tracking-tight">Vítejte na hospodském kvízu</h1>
+        <p className="text-2xl text-gray-400">Vyčkejte na zahájení.</p>
+      </div>
+      <div className="flex items-center gap-3 text-gray-600 text-lg mt-4">
+        <div className="w-2.5 h-2.5 bg-violet-500 rounded-full animate-ping" />
+        <span>Čeká se na moderátora…</span>
+      </div>
     </div>
   )
-
-  if (waiting || slides.length === 0) {
-    const watchUrl = typeof window !== 'undefined' ? window.location.href : `https://kviz.michaljanda.com/watch/${quizId}`
-    return (
-      <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-10 text-white px-8">
-        <h1 className="text-5xl font-black text-center">{quiz.name}</h1>
-
-        {/* QR kód */}
-        <div className="flex flex-col items-center gap-5">
-          <div className="bg-white p-4 rounded-2xl shadow-2xl">
-            <QRCodeSVG value={watchUrl} size={260} level="M" />
-          </div>
-          <p className="text-gray-400 text-sm text-center max-w-xs">
-            Naskenuj QR kód a sleduj kvíz na svém telefonu
-          </p>
-          <p className="text-gray-600 text-xs font-mono">{watchUrl}</p>
-        </div>
-
-        <div className="flex items-center gap-3 text-gray-500 text-lg">
-          <div className="w-2.5 h-2.5 bg-violet-500 rounded-full animate-ping" />
-          Čeká na spuštění moderátorem…
-        </div>
-      </div>
-    )
-  }
 
   const slide = slides[Math.min(slideIndex, slides.length - 1)]
 
   return (
     <div className="min-h-screen bg-[#08090f] text-white flex flex-col overflow-hidden">
       <div className="flex-1">
-        <SlideView slide={slide} phase={phase} />
+        <SlideView slide={slide} phase={phase} watchUrl={watchUrl} />
       </div>
     </div>
   )

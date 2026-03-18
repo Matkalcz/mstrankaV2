@@ -4,15 +4,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Play, Eye, Save, Loader2, Plus, Trash2, GripVertical,
+  ArrowLeft, Play, Save, Loader2, Plus, Trash2, GripVertical,
   FileText, Flag, Minus, HelpCircle, Search, X, ChevronDown, Check,
-  SlidersHorizontal
+  SlidersHorizontal, QrCode
 } from 'lucide-react'
 import Link from 'next/link'
 
 // ─── Typy ─────────────────────────────────────────────────────────────────────
 
-type SlideType = 'page' | 'round_start' | 'separator' | 'question'
+type SlideType = 'page' | 'round_start' | 'separator' | 'question' | 'qr_page'
 
 interface SlideItem {
   _key: string   // lokální klíč pro React
@@ -59,6 +59,7 @@ const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; 
   round_start: { label: 'Start kola',  color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/25', icon: Flag },
   separator:   { label: 'Oddělovač',   color: 'text-amber-300',  bg: 'bg-amber-500/10',  border: 'border-amber-500/25',  icon: Minus },
   question:    { label: 'Otázka',      color: 'text-blue-300',   bg: 'bg-blue-500/10',   border: 'border-blue-500/25',   icon: HelpCircle },
+  qr_page:     { label: 'QR stránka',  color: 'text-cyan-300',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/25',   icon: QrCode },
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -285,6 +286,15 @@ function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Pa
     </div>
   )
 
+  if (item.type === 'qr_page') return (
+    <div className="mt-2 space-y-1.5">
+      <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
+        placeholder="Nadpis (vpravo od QR kódu)…" className={inputCls} />
+      <textarea value={item.content || ''} onChange={e => onChange({ content: e.target.value })}
+        placeholder="Text (vpravo od QR kódu)…" rows={2} className={inputCls + ' resize-none'} />
+    </div>
+  )
+
   return null
 }
 
@@ -410,11 +420,7 @@ export default function QuizBuilderPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => window.open(`/watch/${quizId}`, '_blank')}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors">
-              <Eye size={15} /> Divák
-            </button>
-            <button onClick={() => window.open(`/play/${quizId}`, '_blank')}
+            <button onClick={() => router.push(`/play/${quizId}`)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors">
               <Play size={15} /> Přehrát
             </button>
@@ -450,6 +456,10 @@ export default function QuizBuilderPage() {
               <button onClick={() => addSlide('separator')}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium">
                 <Minus size={15} /> Oddělovač
+              </button>
+              <button onClick={() => addSlide('qr_page')}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors text-sm font-medium">
+                <QrCode size={15} /> QR stránka
               </button>
               <button onClick={() => setShowModal(true)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors text-sm font-medium">
