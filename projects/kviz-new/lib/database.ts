@@ -523,6 +523,22 @@ export const exports = {
 }
 
 // ---------------------------------------------------------------------------
+// App-wide key-value state (active quiz, etc.)
+// ---------------------------------------------------------------------------
+export const appState = {
+  get: (key: string): string | null => {
+    const row = db.prepare('SELECT value FROM app_state WHERE key = ?').get(key) as { value: string } | undefined
+    return row?.value ?? null
+  },
+  set: (key: string, value: string): void => {
+    db.prepare('INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)').run(key, value)
+  },
+  delete: (key: string): void => {
+    db.prepare('DELETE FROM app_state WHERE key = ?').run(key)
+  },
+}
+
+// ---------------------------------------------------------------------------
 // Migration 3: add config JSON column to templates
 // ---------------------------------------------------------------------------
 function migrateTemplatesConfig() {
@@ -544,6 +560,13 @@ function migrateQuizPlayerState() {
 }
 
 // ---------------------------------------------------------------------------
+// Migration 5: app_state key-value table
+// ---------------------------------------------------------------------------
+function migrateAppState() {
+  db.exec(`CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT)`)
+}
+
+// ---------------------------------------------------------------------------
 // Boot — init + migrate
 // ---------------------------------------------------------------------------
 initDatabase()
@@ -551,5 +574,6 @@ migrateQuestionsSchema()
 migrateToTagsSystem()
 migrateTemplatesConfig()
 migrateQuizPlayerState()
+migrateAppState()
 
 export default db

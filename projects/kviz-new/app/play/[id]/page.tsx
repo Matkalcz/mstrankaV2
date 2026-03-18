@@ -240,18 +240,18 @@ function QuestionSlide({ slide, phase }: { slide: Slide; phase: number }) {
   )
 }
 
-function QrPageSlide({ slide, quizId }: { slide: Slide; quizId: string }) {
-  const watchUrl = typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.host}/watch/${quizId}`
-    : `https://kviz.michaljanda.com/watch/${quizId}`
+function QrPageSlide({ slide }: { slide: Slide }) {
+  const startUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.host}/start`
+    : 'https://kviz.michaljanda.com/start'
   return (
     <div className="flex h-full">
       {/* Left half — QR */}
       <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
         <div className="bg-white p-5 rounded-3xl shadow-2xl">
-          <QRCodeSVG value={watchUrl} size={280} level="M" />
+          <QRCodeSVG value={startUrl} size={280} level="M" />
         </div>
-        <p className="text-gray-400 text-base text-center font-mono">{watchUrl}</p>
+        <p className="text-gray-400 text-base text-center font-mono">{startUrl}</p>
       </div>
       {/* Right half — content */}
       <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
@@ -301,12 +301,33 @@ export default function PlayPage() {
   const maxPhase = currentSlide ? getMaxPhase(currentSlide) : 0
 
   const pushState = useCallback((si: number, ph: number) => {
+    const body = JSON.stringify({ slideIndex: si, phase: ph })
+    // Per-quiz state (watch page compatibility)
     fetch(`/api/quizzes/${quizId}/state`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
+    }).catch(() => {})
+    // Global active state (/start page)
+    fetch('/api/active', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideIndex: si, phase: ph }),
+      body: JSON.stringify({ quizId, slideIndex: si, phase: ph }),
     }).catch(() => {})
   }, [quizId])
+
+  // Oznámit aktivní kvíz při prvním načtení
+  useEffect(() => {
+    if (!quiz) return
+    fetch('/api/active', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quizId, slideIndex: 0, phase: 0 }),
+    }).catch(() => {})
+  }, [quiz, quizId])
+
+  const handleClose = useCallback(() => {
+    fetch('/api/active', { method: 'DELETE' }).catch(() => {})
+    router.push('/admin/quizzes')
+  }, [router])
 
   const handleForward = useCallback(() => {
     if (!currentSlide) return
@@ -341,12 +362,12 @@ export default function PlayPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); handleForward() }
       if (e.key === 'ArrowLeft') { e.preventDefault(); handleBack() }
-      if (e.key === 'Escape') router.push('/admin/quizzes')
+      if (e.key === 'Escape') handleClose()
       if (e.key === 'h' || e.key === 'H') setShowInfo(v => !v)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [handleForward, handleBack, router])
+  }, [handleForward, handleBack, handleClose])
 
   if (loading) return (
     <div className="min-h-screen bg-[#08090f] flex items-center justify-center">
@@ -392,7 +413,7 @@ export default function PlayPage() {
       {/* Info bar */}
       {showInfo && (
         <div className="flex items-center gap-4 px-6 py-3 bg-black/60 border-b border-white/[0.08] text-sm shrink-0">
-          <button onClick={() => router.push('/admin/quizzes')}
+          <button onClick={handleClose}
             className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors mr-2">
             <X size={14} /> Zavřít
           </button>
@@ -408,9 +429,9 @@ export default function PlayPage() {
           <span className="text-gray-500 text-xs">Fáze <span className="text-white">{phase}</span>/{maxPhase}</span>
           <div className="ml-auto flex items-center gap-3">
             <button
-              onClick={() => window.open(`/watch/${quizId}`, '_blank')}
+              onClick={() => window.open('/start', '_blank')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/30 border border-violet-500/40 text-violet-300 hover:bg-violet-600/50 hover:text-white transition-colors text-xs font-semibold">
-              <Eye size={13} /> Divák
+              <Eye size={13} /> Divák (/start)
             </button>
             <span className="text-gray-600 text-xs">H = skryj lištu</span>
           </div>
@@ -429,7 +450,7 @@ export default function PlayPage() {
         {slide.type === 'round_start' && <RoundStartSlide slide={slide} />}
         {slide.type === 'separator' && <SeparatorSlide slide={slide} />}
         {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} />}
-        {slide.type === 'qr_page' && <QrPageSlide slide={slide} quizId={quizId} />}
+        {slide.type === 'qr_page' && <QrPageSlide slide={slide} />}
       </div>
 
       {/* Controls */}

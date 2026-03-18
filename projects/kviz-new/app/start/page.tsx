@@ -1,10 +1,11 @@
-// app/watch/[id]/page.tsx — Veřejný fullscreen pohled (diváci / projektor)
+// app/start/page.tsx — Jednotná veřejná adresa kvízu (kviz.michaljanda.com/start)
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
 import { Volume2, Video } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+
+// ─── Typy ──────────────────────────────────────────────────────────────────────
 
 interface QuestionData {
   id: string
@@ -35,6 +36,8 @@ interface QuizData {
   questions: QuestionData[]
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
 function buildSlides(quiz: QuizData): Slide[] {
   if (!quiz.sequence || quiz.sequence.length === 0) {
     return quiz.questions.map(q => ({ type: 'question' as SlideType, question: q }))
@@ -57,6 +60,8 @@ function buildSlides(quiz: QuizData): Slide[] {
   }
   return slides
 }
+
+// ─── Slide renderers ───────────────────────────────────────────────────────────
 
 const optionColors = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 'bg-red-600', 'bg-violet-600', 'bg-pink-600']
 const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -100,14 +105,12 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
 
   if (slide.type === 'qr_page') return (
     <div className="flex h-full">
-      {/* Left half — QR code */}
       <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16">
         <div className="bg-white p-5 rounded-3xl shadow-2xl">
           <QRCodeSVG value={START_URL} size={300} level="M" />
         </div>
         <p className="text-gray-400 text-lg text-center">{START_URL}</p>
       </div>
-      {/* Right half — content */}
       <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-16 text-center border-l border-white/[0.08]">
         {slide.title && <h2 className="text-5xl font-black text-white leading-tight">{slide.title}</h2>}
         {slide.content && <p className="text-2xl text-gray-300 max-w-xl">{slide.content}</p>}
@@ -121,7 +124,6 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
 
   return (
     <div className="flex flex-col h-full px-20 py-16 gap-10">
-      {/* Question text */}
       <div className="flex-1 flex items-center justify-center">
         <h2 className="text-5xl font-bold text-white text-center leading-tight max-w-5xl">{q.text}</h2>
       </div>
@@ -160,9 +162,7 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
           {(q.options || []).map((opt, i) => (
             <div key={i}
               className={`rounded-2xl px-8 py-4 flex items-center gap-5 transition-all duration-500 ${
-                phase > i
-                  ? 'bg-emerald-500/20 border border-emerald-500/40'
-                  : 'bg-white/[0.03] border border-white/[0.05]'
+                phase > i ? 'bg-emerald-500/20 border border-emerald-500/40' : 'bg-white/[0.03] border border-white/[0.05]'
               }`}>
               <span className="text-base font-bold text-emerald-400 w-6">{i + 1}.</span>
               <span className={`text-2xl font-semibold transition-colors duration-500 ${phase > i ? 'text-white' : 'text-transparent'}`}>
@@ -192,9 +192,7 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
       {q.type === 'video' && (
         <div className="flex flex-col items-center gap-6 pb-4">
           {phase === 0 && q.media_url && (
-            <div className="flex items-center gap-3 text-gray-400 text-xl">
-              <Video size={36} className="text-violet-400" />
-            </div>
+            <Video size={36} className="text-violet-400" />
           )}
           {phase >= 1 && q.media_url && (
             <video src={q.media_url} controls autoPlay className="max-h-80 rounded-2xl border border-white/10" />
@@ -210,60 +208,54 @@ function SlideView({ slide, phase }: { slide: Slide; phase: number }) {
   )
 }
 
-export default function WatchPage() {
-  const params = useParams()
-  const quizId = params.id as string
+// ─── Hlavní komponenta ─────────────────────────────────────────────────────────
 
-  const [quiz, setQuiz] = useState<QuizData | null>(null)
-  const [slides, setSlides] = useState<Slide[]>([])
+export default function StartPage() {
   const [slideIndex, setSlideIndex] = useState(0)
   const [phase, setPhase] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [active, setActive] = useState(false)   // true = moderátor aktivoval kvíz
+  const [slides, setSlides] = useState<Slide[]>([])
+  const [active, setActive] = useState(false)
 
-  const watchUrl = typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.host}/watch/${quizId}`
-    : `https://kviz.michaljanda.com/watch/${quizId}`
+  // Ref pro sledování aktuálního quizId bez re-subscribu effectu
+  const currentQuizIdRef = useRef<string | null>(null)
 
-  // Load quiz data once
-  useEffect(() => {
-    fetch(`/api/quizzes/${quizId}`)
-      .then(r => r.json())
-      .then((data: QuizData) => {
-        setQuiz(data)
-        setSlides(buildSlides(data))
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [quizId])
-
-  // Poll player state every second
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch(`/api/quizzes/${quizId}/state`)
+        const res = await fetch('/api/active')
         const state = await res.json()
-        if (state && typeof state.slideIndex === 'number') {
-          setSlideIndex(state.slideIndex)
+
+        if (state?.quizId) {
+          setSlideIndex(state.slideIndex ?? 0)
           setPhase(state.phase ?? 0)
           setActive(true)
+
+          // Načti kvíz pouze pokud se quizId změnilo
+          if (state.quizId !== currentQuizIdRef.current) {
+            currentQuizIdRef.current = state.quizId
+            const qRes = await fetch(`/api/quizzes/${state.quizId}`)
+            const qData: QuizData = await qRes.json()
+            setSlides(buildSlides(qData))
+          }
+        } else {
+          // Žádný aktivní kvíz
+          if (currentQuizIdRef.current !== null) {
+            currentQuizIdRef.current = null
+            setSlides([])
+          }
+          setActive(false)
         }
       } catch {}
     }
+
     poll()
     const interval = setInterval(poll, 1000)
     return () => clearInterval(interval)
-  }, [quizId])
+  }, [])
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#08090f] flex items-center justify-center">
-      <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-
-  // Waiting screen — shown when moderator hasn't started yet
+  // Čekací obrazovka
   if (!active || slides.length === 0) return (
-    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white">
+    <div className="min-h-screen bg-[#08090f] flex flex-col items-center justify-center gap-8 text-white select-none">
       <div className="text-center space-y-3">
         <h1 className="text-5xl font-black tracking-tight">Vítejte na hospodském kvízu</h1>
         <p className="text-2xl text-gray-400">Vyčkejte na zahájení.</p>
@@ -278,9 +270,9 @@ export default function WatchPage() {
   const slide = slides[Math.min(slideIndex, slides.length - 1)]
 
   return (
-    <div className="min-h-screen bg-[#08090f] text-white flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-[#08090f] text-white flex flex-col overflow-hidden select-none">
       <div className="flex-1">
-        <SlideView slide={slide} phase={phase} watchUrl={watchUrl} />
+        <SlideView slide={slide} phase={phase} />
       </div>
     </div>
   )
