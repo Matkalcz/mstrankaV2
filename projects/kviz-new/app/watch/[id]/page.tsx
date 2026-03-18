@@ -178,10 +178,16 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
     ? `${window.location.protocol}//${window.location.host}/start`
     : 'https://kviz.michaljanda.com/start'
 
-  // Page slide — only background image, no text
+  // Page slide — background + title/content if set
   if (slide.type === 'page') {
     return (
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full flex flex-col items-center justify-center gap-6 px-16 text-center">
+        {slide.title && (
+          <h1 className="text-6xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h1>
+        )}
+        {slide.content && (
+          <p className="text-2xl max-w-2xl" style={{ color: textColor, opacity: 0.75 }}>{slide.content}</p>
+        )}
         {roundNumber !== undefined && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             <span className="text-xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.4 }}>

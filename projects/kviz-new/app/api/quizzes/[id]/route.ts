@@ -47,8 +47,18 @@ export async function GET(
             )
         }
 
-        // Parse sequence first
-        const sequence = quiz.sequence ? JSON.parse(quiz.sequence) : []
+        // Parse sequence — ochrana proti double-stringify (string po JSON.parse → znovu parsuj)
+        let sequence: any[] = []
+        if (quiz.sequence) {
+          try {
+            const p = JSON.parse(quiz.sequence)
+            if (Array.isArray(p)) sequence = p
+            else if (typeof p === 'string') {
+              const p2 = JSON.parse(p)
+              sequence = Array.isArray(p2) ? p2 : []
+            }
+          } catch { sequence = [] }
+        }
 
         // Collect all question IDs from the sequence
         const seqQuestionIds: string[] = sequence
@@ -133,10 +143,19 @@ export async function PUT(
         // Get quiz questions
         const quizQuestions = quizzes.getQuestions(id) as QuizQuestion[]
 
-        // Parse sequence JSON
+        // Parse sequence JSON — ochrana proti double-stringify
+        const parseSeq = (raw?: string): any[] => {
+          if (!raw) return []
+          try {
+            const p = JSON.parse(raw)
+            if (Array.isArray(p)) return p
+            if (typeof p === 'string') { const p2 = JSON.parse(p); return Array.isArray(p2) ? p2 : [] }
+          } catch {}
+          return []
+        }
         const parsedQuiz = {
             ...updatedQuiz,
-            sequence: updatedQuiz.sequence ? JSON.parse(updatedQuiz.sequence) : [],
+            sequence: parseSeq(updatedQuiz.sequence),
             questions: quizQuestions.map(q => ({
                 ...q,
                 options: q.options ? JSON.parse(q.options) : []

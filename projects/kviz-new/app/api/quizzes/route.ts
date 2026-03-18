@@ -31,6 +31,17 @@ interface QuizQuestion {
     round_number: number
 }
 
+// Ochrana proti double-stringify sekvence
+function parseSequence(raw?: string): any[] {
+  if (!raw) return []
+  try {
+    const p = JSON.parse(raw)
+    if (Array.isArray(p)) return p
+    if (typeof p === 'string') { const p2 = JSON.parse(p); return Array.isArray(p2) ? p2 : [] }
+  } catch {}
+  return []
+}
+
 // GET /api/quizzes - Get all quizzes
 export async function GET(request: NextRequest) {
     try {
@@ -50,7 +61,7 @@ export async function GET(request: NextRequest) {
 
             return {
                 ...quiz,
-                sequence: quiz.sequence ? JSON.parse(quiz.sequence) : [],
+                sequence: parseSequence(quiz.sequence),
                 questionCount: quizQuestions.length,
                 roundCount: quizQuestions.length > 0 ?
                     Math.max(...quizQuestions.map(q => q.round_number || 1)) : 0
@@ -100,7 +111,7 @@ export async function POST(request: NextRequest) {
         // Parse sequence JSON
         const parsedQuiz = {
             ...createdQuiz,
-            sequence: createdQuiz.sequence ? JSON.parse(createdQuiz.sequence) : [],
+            sequence: parseSequence(createdQuiz.sequence),
             questionCount: 0,
             roundCount: 0
         }
