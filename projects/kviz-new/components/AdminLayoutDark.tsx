@@ -4,40 +4,27 @@
 "use client"
 
 import { ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, HelpCircle, Tag, PlayCircle,
-  Palette, Settings, Monitor, ChevronRight, Zap,
-  BookOpen, Plus
+  Palette, Settings, Monitor, ChevronRight, Plus
 } from "lucide-react"
 
 // ── Nav config ────────────────────────────────────────────────────────────────
 
-const NAV_GROUPS = [
-  {
-    label: "OBSAH",
-    items: [
-      { label: "Dashboard",  href: "/admin",            icon: LayoutDashboard, exact: true },
-      { label: "Otázky",     href: "/admin/questions",  icon: HelpCircle },
-      { label: "Tagy",       href: "/admin/categories", icon: Tag },
-      { label: "Kvízy",      href: "/admin/quizzes",    icon: PlayCircle },
-    ]
-  },
-  {
-    label: "SPRÁVA",
-    items: [
-      { label: "Šablony",   href: "/admin/templates",  icon: Palette },
-      { label: "Nastavení", href: "/admin/settings",   icon: Settings },
-    ]
-  },
-  {
-    label: "PŘEHRÁVAČ",
-    items: [
-      { label: "Spustit kvíz", href: "/quiz/demo",     icon: Monitor },
-    ]
-  }
+const NAV_ITEMS = [
+  { label: "Dashboard",    href: "/admin",            icon: LayoutDashboard, exact: true },
+  { label: "Otázky",       href: "/admin/questions",  icon: HelpCircle },
+  { label: "Tagy",         href: "/admin/categories", icon: Tag },
+  { label: "Kvízy",        href: "/admin/quizzes",    icon: PlayCircle },
+  { label: "Šablony",      href: "/admin/templates",  icon: Palette },
+  { label: "Nastavení",    href: "/admin/settings",   icon: Settings },
+  { label: "Spustit kvíz", href: "/admin/quizzes",    icon: Monitor },
 ]
+
+const AVATAR_URL = "/admin-avatar.jpg" // umísti foto do /public/admin-avatar.jpg
 
 // ── Sidebar nav item ──────────────────────────────────────────────────────────
 
@@ -48,16 +35,16 @@ function NavItem({ href, label, icon: Icon, active }: {
     <Link
       href={href}
       className={`
-        relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+        relative flex items-center gap-3.5 px-4 py-3 rounded-xl text-[15px] font-medium
         transition-all duration-150 group
         ${active
-          ? "bg-violet-500/20 text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-r-full before:bg-violet-400"
-          : "text-gray-300 hover:text-white hover:bg-white/[0.06]"
+          ? "bg-violet-600/25 text-white before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-r-full before:bg-violet-400"
+          : "text-gray-400 hover:text-white hover:bg-white/[0.06]"
         }
       `}
     >
       <Icon
-        size={18}
+        size={20}
         className={active ? "text-violet-400" : "text-gray-500 group-hover:text-gray-300 transition-colors"}
       />
       {label}
@@ -65,69 +52,63 @@ function NavItem({ href, label, icon: Icon, active }: {
   )
 }
 
-// ── Sidebar (pure, no hooks if used in server layout) ─────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function AdminSidebarInner() {
   const pathname = usePathname()
-
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href)
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col bg-[#0d0f1c] border-r border-white/[0.08] relative overflow-hidden">
-      {/* Gradient blobs */}
-      <div className="absolute -top-14 -left-14 w-56 h-56 bg-violet-600/25 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 -right-10 w-36 h-36 bg-indigo-600/15 rounded-full blur-2xl pointer-events-none" />
+    <aside className="w-[220px] shrink-0 flex flex-col bg-[#0d0f1e] border-r border-white/[0.07]">
 
-      {/* Identity */}
-      <div className="relative px-5 pt-6 pb-5 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
-            <Zap size={20} className="text-white" />
+      {/* Avatar + identity */}
+      <div className="px-5 pt-6 pb-5 border-b border-white/[0.07]">
+        <div className="flex items-center gap-3.5">
+          <div className="relative shrink-0">
+            <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-violet-500/40">
+              <Image
+                src={AVATAR_URL}
+                alt="Avatar"
+                width={44}
+                height={44}
+                className="object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0d0f1e]" />
           </div>
           <div>
-            <div className="text-sm font-bold text-white leading-tight tracking-wide">Kvíz Admin</div>
-            <div className="text-xs text-gray-500 leading-tight mt-0.5">Panel moderátora</div>
+            <div className="text-[15px] font-bold text-white leading-tight">Kvíz Admin</div>
+            <div className="text-xs text-emerald-400 leading-tight mt-0.5 font-medium">Aktivní</div>
           </div>
         </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="px-3 pt-4 pb-3 border-b border-white/[0.07] space-y-1.5">
+        <Link href="/admin/questions/new"
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
+          <Plus size={16} className="text-gray-400" /> Nová otázka
+        </Link>
+        <Link href="/admin/quizzes/new"
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-[14px] font-semibold text-white transition-colors">
+          <Plus size={16} className="text-gray-400" /> Nový kvíz
+        </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
-        {NAV_GROUPS.map(group => (
-          <div key={group.label}>
-            <div className="px-3 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              {group.label}
-            </div>
-            <div className="space-y-0.5">
-              {group.items.map(item => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isActive(item.href, item.exact)}
-                />
-              ))}
-            </div>
-          </div>
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+        {NAV_ITEMS.map(item => (
+          <NavItem
+            key={item.href + item.label}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            active={isActive(item.href, item.exact)}
+          />
         ))}
       </nav>
-
-      {/* Bottom */}
-      <div className="px-3 pb-5 pt-4 border-t border-white/[0.08] space-y-1">
-        <Link
-          href="/admin/questions/new"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition-all"
-        >
-          <Plus size={18} className="text-gray-500" />
-          Nová otázka
-        </Link>
-        <div className="flex items-center gap-2.5 px-3 py-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow shadow-emerald-400/50 shrink-0" />
-          <span className="text-xs text-gray-500 font-medium">Systém aktivní</span>
-        </div>
-      </div>
     </aside>
   )
 }
