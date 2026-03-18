@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Pencil, Trash2, Plus, Search, HelpCircle, Tag, Layers, BarChart2 } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
@@ -163,7 +164,10 @@ export default function QuestionsPage() {
                     <div key={q.id}
                       className="grid grid-cols-[minmax(0,1fr)_155px_200px_130px_130px_80px] items-center px-6 py-5 hover:bg-white/[0.03] transition-colors">
                       <div className="pr-4 min-w-0">
-                        <p className="text-[15px] text-gray-200 leading-snug line-clamp-2">{q.text}</p>
+                        <Link href={`/admin/questions/new?id=${q.id}`}
+                          className="text-[15px] text-gray-200 hover:text-violet-300 leading-snug line-clamp-2 block transition-colors">
+                          {q.text}
+                        </Link>
                         <p className="text-xs text-gray-600 mt-1 font-mono">{q.id.substring(0, 8)}…</p>
                       </div>
                       <div>

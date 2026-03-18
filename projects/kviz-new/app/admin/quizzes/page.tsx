@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
@@ -124,7 +125,7 @@ export default function QuizzesPage() {
         ) : (
           <DarkCard>
             {/* Column header */}
-            <div className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] px-6 py-3 border-b border-white/[0.08] text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] px-6 py-3.5 border-b border-white/[0.08] text-xs font-bold text-gray-500 uppercase tracking-wider">
               <span>Název</span>
               <span>Stav</span>
               <span>Otázek</span>
@@ -134,7 +135,7 @@ export default function QuizzesPage() {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="py-16 text-center text-gray-500 text-sm">
+              <div className="py-16 text-center text-gray-500 text-[15px]">
                 {quizzes.length === 0 ? "Žádné kvízy v databázi" : "Žádné kvízy nevyhovují filtru"}
               </div>
             ) : (
@@ -143,27 +144,30 @@ export default function QuizzesPage() {
                   const sm = STATUS_META[q.status] ?? STATUS_META.draft
                   return (
                     <div key={q.id}
-                      className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] items-center px-6 py-4 hover:bg-white/[0.03] transition-colors">
+                      className="grid grid-cols-[minmax(0,1fr)_120px_108px_96px_132px_110px] items-center px-6 py-5 hover:bg-white/[0.03] transition-colors">
                       {/* Name + description */}
                       <div className="pr-4 min-w-0">
-                        <p className="text-sm font-semibold text-gray-200 leading-snug truncate">{q.name}</p>
+                        <Link href={`/admin/quizzes/${q.id}`}
+                          className="text-[15px] font-semibold text-gray-200 hover:text-violet-300 leading-snug truncate block transition-colors">
+                          {q.name}
+                        </Link>
                         {q.description && (
-                          <p className="text-[11px] text-gray-500 mt-0.5 truncate">{q.description}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">{q.description}</p>
                         )}
                       </div>
                       {/* Status */}
                       <div>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${sm.bg} ${sm.text}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-semibold ${sm.bg} ${sm.text}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
                           {sm.label}
                         </span>
                       </div>
                       {/* Question count */}
-                      <div className="text-sm font-semibold text-gray-300">{q.questionCount}</div>
+                      <div className="text-[15px] font-semibold text-gray-300">{q.questionCount}</div>
                       {/* Round count */}
-                      <div className="text-sm text-gray-400">{q.roundCount || "—"}</div>
+                      <div className="text-[15px] text-gray-400">{q.roundCount || "—"}</div>
                       {/* Date */}
-                      <div className="text-xs text-gray-500">{formatDate(q.created_at)}</div>
+                      <div className="text-[13px] text-gray-500">{formatDate(q.created_at)}</div>
                       {/* Actions */}
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => router.push(`/play/${q.id}`)}
@@ -188,7 +192,7 @@ export default function QuizzesPage() {
             )}
 
             {filtered.length > 0 && (
-              <div className="px-6 py-3 border-t border-white/[0.08] text-xs text-gray-600 font-medium">
+              <div className="px-6 py-3.5 border-t border-white/[0.08] text-[13px] text-gray-600 font-medium">
                 Zobrazeno {filtered.length} z {quizzes.length} kvízů
               </div>
             )}

@@ -30,24 +30,24 @@ function TemplatePreview({ t }: { t: Template }) {
       className="h-36 w-full rounded-t-xl flex flex-col items-center justify-center gap-2 relative overflow-hidden"
       style={{ background: bg }}
     >
-      <div className="absolute inset-0 bg-black/10" />
+      <div className="absolute inset-0 bg-black/30" />
       <div className="relative z-10 text-center px-4">
-        <div className="text-xs font-bold uppercase tracking-widest mb-1 opacity-60"
-          style={{ color: cfg?.accentColor ?? t.accent_color ?? '#a78bfa' }}>
+        <div className="text-xs font-bold uppercase tracking-widest mb-1 opacity-80"
+          style={{ color: cfg?.accentColor ?? t.accent_color ?? '#a78bfa', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
           {cfg?.fontFamily ?? t.font_family ?? 'Sans-serif'}
         </div>
-        <div className="text-base font-bold leading-snug line-clamp-2"
-          style={{ color: cfg?.textColor ?? t.text_color ?? '#ffffff' }}>
+        <div className="text-base font-bold leading-snug line-clamp-2 text-white"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
           {t.name}
         </div>
         <div className="mt-2 flex gap-1.5 justify-center">
           {['A', 'B', 'C'].map((l, i) => (
-            <span key={l} className="px-2 py-0.5 rounded text-xs font-semibold"
+            <span key={l} className="px-2 py-0.5 rounded text-xs font-semibold text-white"
               style={{
                 backgroundColor: i === 0
                   ? (cfg?.accentColor ?? t.accent_color ?? '#7c3aed') + 'cc'
-                  : (cfg?.textColor ?? '#fff') + '18',
-                color: cfg?.textColor ?? t.text_color ?? '#fff',
+                  : 'rgba(255,255,255,0.18)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.6)',
               }}>
               {l}
             </span>
@@ -131,19 +131,22 @@ export default function TemplatesPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-white text-sm truncate">{t.name}</h3>
+                      <a href={`/admin/templates/new?id=${t.id}`}
+                        className="font-semibold text-white text-[15px] truncate block hover:text-violet-300 transition-colors">
+                        {t.name}
+                      </a>
                       <div className="flex items-center gap-2 mt-1.5">
                         {[
-                          { color: t.background_color, label: 'Pozadí' },
-                          { color: t.text_color, label: 'Text' },
-                          { color: t.accent_color, label: 'Akcent' },
+                          { color: t.config?.accentColor ?? t.background_color, label: 'Pozadí' },
+                          { color: t.config?.textColor ?? t.text_color, label: 'Text' },
+                          { color: t.config?.accentColor ?? t.accent_color, label: 'Akcent' },
                         ].map(({ color, label }) => (
                           <div key={label} className="flex items-center gap-1" title={label}>
-                            <div className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                            <div className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
                               style={{ backgroundColor: color ?? '#888' }} />
                           </div>
                         ))}
-                        <span className="text-xs text-gray-500 font-mono ml-1">
+                        <span className="text-[13px] text-gray-400 font-mono ml-1">
                           {t.config?.fontFamily ?? t.font_family ?? '—'}
                         </span>
                       </div>
@@ -170,10 +173,10 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">
+                    <span className="text-xs text-gray-500">
                       {t.config?.backgroundType === 'gradient' ? 'Přechod' : t.config?.backgroundType === 'image' ? 'Obrázek' : 'Barva'}
                     </span>
-                    <span className="text-[11px] text-gray-600 font-mono">
+                    <span className="text-xs text-gray-500 font-mono">
                       {t.created_at ? new Date(t.created_at).toLocaleDateString('cs-CZ') : '—'}
                     </span>
                   </div>

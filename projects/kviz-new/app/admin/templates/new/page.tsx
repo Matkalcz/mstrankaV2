@@ -145,8 +145,8 @@ function BgEditor({ value, onChange, label }: {
       {value.bgType === "image" && (
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-gray-400">URL obrázku</label>
-          <input type="url" value={value.bgImage} onChange={e => set("bgImage")(e.target.value)}
-            className={inputCls} placeholder="https://…/background.jpg" />
+          <input type="text" value={value.bgImage} onChange={e => set("bgImage")(e.target.value)}
+            className={inputCls} placeholder="https://…/background.jpg nebo /api/media/…" />
           <label className={"flex items-center gap-2 cursor-pointer w-full justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploading ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
             <Upload size={14} />
             {uploading ? "Nahrávám…" : "Nahrát obrázek ze zařízení"}
