@@ -280,7 +280,7 @@ export default function WatchPage() {
   return (
     <div className="min-h-screen bg-[#08090f] text-white flex flex-col overflow-hidden">
       <div className="flex-1">
-        <SlideView slide={slide} phase={phase} watchUrl={watchUrl} />
+        <SlideView slide={slide} phase={phase} />
       </div>
     </div>
   )
