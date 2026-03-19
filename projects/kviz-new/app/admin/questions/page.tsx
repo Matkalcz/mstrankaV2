@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Pencil, Trash2, Plus, Search, HelpCircle, Tag, Layers, BarChart2 } from "lucide-react"
+import { Pencil, Trash2, Plus, Search, HelpCircle, Tag, Layers, BarChart2, ChevronDown, Check } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
@@ -14,6 +14,59 @@ interface Question {
   id: string; text: string; type: QuestionType
   tags: { id: string; name: string; color?: string }[]
   difficulty: Difficulty; createdAt: string
+}
+
+interface TagOption {
+  id: string; name: string; color?: string
+}
+
+function FilterPill({ label, value, options, onChange }: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const current = options.find(o => o.value === value)
+  const displayLabel = current ? current.label : label
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1.5 px-3 py-2.5 text-sm border rounded-lg transition-colors whitespace-nowrap ${
+          value
+            ? "bg-violet-500/15 border-violet-500/30 text-violet-200 hover:bg-violet-500/25"
+            : "bg-[#191b2e] border-white/[0.1] text-gray-300 hover:bg-white/[0.08]"
+        }`}
+      >
+        {displayLabel}
+        <ChevronDown size={13} className={`transition-transform opacity-60 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-full mt-1.5 left-0 z-20 bg-[#13152a] border border-white/[0.12] rounded-xl shadow-2xl shadow-black/50 py-1 min-w-[170px]">
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors flex items-center gap-2 ${
+                  value === opt.value
+                    ? "text-violet-300 bg-violet-500/10"
+                    : "text-gray-300 hover:bg-white/[0.05] hover:text-white"
+                }`}
+              >
+                {value === opt.value && <Check size={12} className="text-violet-400 shrink-0" />}
+                {value !== opt.value && <span className="w-3" />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 function formatDate(s: string) {
@@ -44,8 +97,10 @@ export default function QuestionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [filterTag, setFilterTag] = useState("")
   const [typeFilter, setTypeFilter] = useState<QuestionType | "">("")
   const [diffFilter, setDiffFilter] = useState<Difficulty | "">("")
+  const [allTags, setAllTags] = useState<TagOption[]>([])
 
   const load = () => {
     setLoading(true)
@@ -65,7 +120,13 @@ export default function QuestionsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    fetch("/api/tags")
+      .then(r => r.ok ? r.json() : [])
+      .then((data: TagOption[]) => setAllTags(Array.isArray(data) ? data.sort((a, b) => a.name.localeCompare(b.name, "cs")) : []))
+      .catch(() => {})
+  }, [])
 
   const handleDelete = async (id: string, text: string) => {
     if (!confirm(`Smazat otázku?\n\n"${text.substring(0, 80)}…"`)) return
@@ -80,6 +141,7 @@ export default function QuestionsPage() {
 
   const filtered = questions.filter(q => {
     if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false
+    if (filterTag && !q.tags.some(t => t.id === filterTag)) return false
     if (typeFilter && q.type !== typeFilter) return false
     if (diffFilter && q.difficulty !== diffFilter) return false
     return true
@@ -108,28 +170,45 @@ export default function QuestionsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <FilterPill
+            label="Kategorie"
+            value={filterTag}
+            onChange={setFilterTag}
+            options={[
+              { value: "", label: "Všechny kategorie" },
+              ...allTags.map(t => ({ value: t.id, label: t.name }))
+            ]}
+          />
+          <FilterPill
+            label="Typ"
+            value={typeFilter}
+            onChange={v => setTypeFilter(v as QuestionType | "")}
+            options={[
+              { value: "", label: "Všechny typy" },
+              ...Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))
+            ]}
+          />
+          <FilterPill
+            label="Obtížnost"
+            value={diffFilter}
+            onChange={v => setDiffFilter(v as Difficulty | "")}
+            options={[
+              { value: "", label: "Obtížnost" },
+              { value: "easy", label: "Lehká" },
+              { value: "medium", label: "Střední" },
+              { value: "hard", label: "Těžká" },
+            ]}
+          />
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Hledat otázky…"
               className="w-full pl-9 pr-4 py-2.5 bg-[#191b2e] border border-white/[0.1] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
           </div>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
-            className="px-3 py-2.5 bg-[#191b2e] border border-white/[0.1] rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="">Všechny typy</option>
-            {Object.entries(TYPE_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
-          <select value={diffFilter} onChange={e => setDiffFilter(e.target.value as any)}
-            className="px-3 py-2.5 bg-[#191b2e] border border-white/[0.1] rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="">Všechny obtížnosti</option>
-            <option value="easy">Lehká</option>
-            <option value="medium">Střední</option>
-            <option value="hard">Těžká</option>
-          </select>
-          {(search || typeFilter || diffFilter) && (
-            <button onClick={() => { setSearch(""); setTypeFilter(""); setDiffFilter("") }}
-              className="px-3 py-2.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/[0.05] border border-white/[0.08] transition-colors">
+          {(search || filterTag || typeFilter || diffFilter) && (
+            <button onClick={() => { setSearch(""); setFilterTag(""); setTypeFilter(""); setDiffFilter("") }}
+              className="px-3 py-2.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/[0.05] border border-white/[0.08] transition-colors whitespace-nowrap">
               Zrušit filtry
             </button>
           )}

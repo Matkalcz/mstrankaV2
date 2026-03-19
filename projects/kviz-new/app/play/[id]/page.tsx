@@ -537,13 +537,24 @@ export default function PlayPage() {
       .then(r => r.json())
       .then((data: QuizData) => {
         setQuiz(data)
-        setSlides(buildSlides(data))
+        const built = buildSlides(data)
+        setSlides(built)
         if (data.template_id) {
           fetch(`/api/templates/${data.template_id}`)
             .then(r => r.json())
             .then(t => { if (t.config) setTmpl(t.config) })
             .catch(() => {})
         }
+        // Předem načti všechna audio/video média ze slidů
+        built.forEach(s => {
+          const url = s.question?.media_url
+          if (!url) return
+          if (s.question?.type === 'audio') {
+            const a = new Audio(); a.preload = 'auto'; a.src = url
+          } else if (s.question?.type === 'video') {
+            const v = document.createElement('video'); v.preload = 'auto'; v.src = url
+          }
+        })
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -681,7 +692,7 @@ export default function PlayPage() {
               <PanelLeftClose size={14} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto py-1.5">
+          <div className="flex-1 overflow-y-auto py-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(139,92,246,0.3)_rgba(255,255,255,0.04)] [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-violet-500/30 [&::-webkit-scrollbar-track]:bg-white/[0.02]">
             {slides.map((s, idx) => (
               <SlideThumbnail key={idx} slide={s} idx={idx} isCurrent={idx === slideIndex} tmpl={tmpl} onClick={() => goToSlide(idx)} />
             ))}

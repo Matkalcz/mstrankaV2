@@ -209,17 +209,32 @@ function QuestionModal({ questions, onSelect, onClose, singleMode = false }: {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
           <h2 className="text-lg font-bold text-white">{singleMode ? 'Vybrat otázku' : 'Vybrat otázky'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/admin/questions/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 transition-colors"
+            >
+              <Plus size={13} /> Vytvořit novou otázku
+            </a>
+            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+          </div>
         </div>
 
         {/* Filters */}
         <div className="px-6 py-3 border-b border-white/[0.06] flex gap-2 flex-wrap items-center">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Hledat otázku…"
-              className="w-full pl-8 pr-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
-          </div>
+          {allTags.length > 0 && (
+            <FilterPill
+              label="Kategorie"
+              value={filterTag}
+              onChange={setFilterTag}
+              options={[
+                { value: '', label: 'Všechny kategorie' },
+                ...allTags.map(t => ({ value: t.id, label: t.name }))
+              ]}
+            />
+          )}
           <FilterPill
             label="Typ"
             value={filterType}
@@ -240,17 +255,12 @@ function QuestionModal({ questions, onSelect, onClose, singleMode = false }: {
               { value: 'hard', label: 'Těžká' },
             ]}
           />
-          {allTags.length > 0 && (
-            <FilterPill
-              label="Kategorie"
-              value={filterTag}
-              onChange={setFilterTag}
-              options={[
-                { value: '', label: 'Všechny kategorie' },
-                ...allTags.map(t => ({ value: t.id, label: t.name }))
-              ]}
-            />
-          )}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Hledat otázku…"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-white/[0.05] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+          </div>
           {(filterType || filterDiff || filterTag) && (
             <button
               onClick={() => { setFilterType(''); setFilterDiff(''); setFilterTag('') }}
@@ -663,7 +673,7 @@ export default function QuizBuilderPage() {
                 title="Klikněte pro přejmenování"
               >
                 {quiz.name}
-                <Pencil size={15} className="opacity-0 group-hover:opacity-40 text-violet-400 transition-opacity shrink-0" />
+                <Pencil size={15} className="opacity-40 text-violet-400 transition-opacity shrink-0" />
               </h1>
             )}
             <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -879,17 +889,26 @@ export default function QuizBuilderPage() {
                               <button
                                 onClick={() => setSlotKey(item._key)}
                                 title="Vyměnit otázku"
-                                className="shrink-0 opacity-0 group-hover:opacity-60 hover:!opacity-100 p-1 rounded-lg text-gray-500 hover:text-blue-300 hover:bg-blue-500/10 transition-all">
+                                className="shrink-0 p-1 rounded-lg text-gray-500 hover:text-blue-300 hover:bg-blue-500/10 transition-all">
                                 <Pencil size={12} />
                               </button>
                             </div>
                           ) : (
                             // Prázdný slot — výzva k výběru otázky
-                            <button
-                              onClick={() => setSlotKey(item._key)}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-blue-500/30 text-blue-400/70 hover:border-blue-400/60 hover:text-blue-300 hover:bg-blue-500/10 transition-colors text-xs font-medium mt-1">
-                              <Plus size={13} /> Vybrat otázku…
-                            </button>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <button
+                                onClick={() => setSlotKey(item._key)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-blue-500/30 text-blue-400/70 hover:border-blue-400/60 hover:text-blue-300 hover:bg-blue-500/10 transition-colors text-xs font-medium">
+                                <Plus size={13} /> Vybrat otázku…
+                              </button>
+                              <a
+                                href="/admin/questions/new"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-emerald-500/30 text-emerald-400/70 hover:border-emerald-400/60 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-xs font-medium">
+                                <Plus size={13} /> Vytvořit otázku
+                              </a>
+                            </div>
                           )
                         ) : (
                           <SlideEditor item={item} onChange={patch => updateItem(item._key, patch)} />
@@ -898,7 +917,7 @@ export default function QuizBuilderPage() {
 
                       {/* Delete */}
                       <button onClick={() => removeItem(item._key)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
+                        className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
                         <Trash2 size={13} />
                       </button>
                     </div>
