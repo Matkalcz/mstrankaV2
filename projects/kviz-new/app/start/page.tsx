@@ -72,7 +72,10 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
   if (slide.type === 'question' && slide.question)
     return bgStyle(tmpl.questionTypes?.[slide.question.type])
   if (slide.type === 'separator') return bgStyle(tmpl.separator)
-  if (slide.type === 'qr_page') return bgStyle(tmpl.qrPage)
+  if (slide.type === 'qr_page') {
+    const qrBg = bgStyle(tmpl.qrPage)
+    return Object.keys(qrBg).length > 0 ? qrBg : { backgroundColor: '#0d1428' }
+  }
   if (slide.type === 'round_start') return bgStyle(tmpl.roundStart as BgCfg | undefined)
   if (slide.type === 'page') {
     const page = slide.templatePageId
@@ -177,25 +180,9 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
     ? `${window.location.protocol}//${window.location.host}/start`
     : 'https://kviz.michaljanda.com/start'
 
-  // Page slide — background + title/content if set
+  // Page slide — pouze pozadí ze šablony, žádný text
   if (slide.type === 'page') {
-    return (
-      <div className="relative h-full w-full flex flex-col items-center justify-center gap-6 px-16 text-center">
-        {slide.title && (
-          <h1 className="text-6xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h1>
-        )}
-        {slide.content && (
-          <p className="text-2xl max-w-2xl" style={{ color: textColor, opacity: 0.75 }}>{slide.content}</p>
-        )}
-        {roundNumber !== undefined && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-            <span className="text-xl font-bold tracking-wide" style={{ color: textColor, opacity: 0.4 }}>
-              {roundNumber}. kolo
-            </span>
-          </div>
-        )}
-      </div>
-    )
+    return <div className="h-full w-full" />
   }
 
   if (slide.type === 'round_start') return (

@@ -79,8 +79,10 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
     return bgStyle(tmpl.questionTypes?.[slide.question.type])
   if (slide.type === 'separator')
     return bgStyle(tmpl.separator)
-  if (slide.type === 'qr_page')
-    return bgStyle(tmpl.qrPage)
+  if (slide.type === 'qr_page') {
+    const qrBg = bgStyle(tmpl.qrPage)
+    return Object.keys(qrBg).length > 0 ? qrBg : { backgroundColor: '#0d1428' }
+  }
   if (slide.type === 'round_start')
     return bgStyle(tmpl.roundStart as BgCfg | undefined)
   if (slide.type === 'page') {
@@ -143,10 +145,14 @@ function getMaxPhase(slide: Slide): number {
   if (!slide.question) return 0
   const q = slide.question
   if (q.type === 'bonus') return (q.options?.length ?? 0)
-  if (q.type === 'audio') return 2
+  if (slide.noAnswerPhase) {
+    // Před oddělovačem: audio/video přehraje (fáze 1), ale odpověď se nezobrazí
+    if (q.type === 'audio' || q.type === 'video') return 1
+    return 0  // prostá/abcdef: přejdi rovnou dál
+  }
+  if (q.type === 'audio') return 2   // fáze 1 = přehrát, fáze 2 = odpověď
   if (q.type === 'video') return 2
-  if (slide.noAnswerPhase) return 0     // otázka před oddělovačem — přejdi rovnou na další
-  return 1                              // zobraz odpověď na klik
+  return 1                           // fáze 1 = zobraz odpověď
 }
 
 // ─── Ikona a popis slidů (sidebar) ───────────────────────────────────────────
@@ -758,22 +764,18 @@ export default function PlayPage() {
           {/* Prostřední blok */}
           <div className="flex items-center justify-center flex-1 gap-10">
 
-            {/* Zpět — oranžová */}
+            {/* Zpět — oranžová velká pill */}
             <button onClick={handleBack} disabled={!canGoBack} title="Zpět (←)"
-              className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-orange-500/30 transition-all shrink-0">
-              <ChevronLeft size={28} className="text-white" />
+              className="px-10 py-4 rounded-full bg-orange-500 hover:bg-orange-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 shadow-xl shadow-orange-500/30 transition-all">
+              <ChevronLeft size={26} className="text-white" />
+              <span className="text-white font-bold text-lg">Zpět</span>
             </button>
 
-            {/* Hlavní akce — modrá pill */}
-            <button onClick={handleForward} disabled={!canGoForward}
-              className="px-10 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all min-w-[200px] text-center">
-              {centerLabel}
-            </button>
-
-            {/* Přeskočit — zelená */}
-            <button onClick={handleSkipForward} disabled={!canSkip} title="Přeskočit (→)"
-              className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-green-500/30 transition-all shrink-0">
-              <ChevronRight size={28} className="text-white" />
+            {/* Vpřed — zelená velká pill */}
+            <button onClick={handleForward} disabled={!canGoForward} title="Vpřed (→)"
+              className="px-10 py-4 rounded-full bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 shadow-xl shadow-green-500/30 transition-all">
+              <span className="text-white font-bold text-lg">Vpřed</span>
+              <ChevronRight size={26} className="text-white" />
             </button>
 
           </div>
