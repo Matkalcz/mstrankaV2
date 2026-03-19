@@ -68,7 +68,7 @@ function bgStyle(cfg: BgCfg | undefined | null): React.CSSProperties {
   if (cfg.bgType === 'gradient' && cfg.bg1 && cfg.bg2)
     return { background: `linear-gradient(135deg, ${cfg.bg1}, ${cfg.bg2})` }
   if (cfg.bgType === 'image' && cfg.bgImage)
-    return { backgroundImage: `url(${cfg.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+    return { backgroundColor: cfg.bg1 || '#0a0a1a', backgroundImage: `url(${cfg.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
   if (cfg.bg1) return { backgroundColor: cfg.bg1 }
   return {}
 }
@@ -320,14 +320,12 @@ function RoundStartSlide({ slide, textColor, accentColor }: { slide: Slide; text
   )
 }
 
-function SeparatorSlide({ slide, textColor, accentColor }: { slide: Slide; textColor: string; accentColor: string }) {
+function SeparatorSlide({ slide, textColor }: { slide: Slide; textColor: string; accentColor: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6">
-      <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
       {slide.title && (
-        <h2 className="text-4xl font-bold" style={{ color: accentColor }}>{slide.title}</h2>
+        <h2 className="text-4xl font-bold text-center px-8" style={{ color: textColor }}>{slide.title}</h2>
       )}
-      <div className="w-24 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
     </div>
   )
 }
