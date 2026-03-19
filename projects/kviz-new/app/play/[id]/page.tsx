@@ -79,10 +79,7 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
     return bgStyle(tmpl.questionTypes?.[slide.question.type])
   if (slide.type === 'separator')
     return bgStyle(tmpl.separator)
-  if (slide.type === 'qr_page') {
-    const qrBg = bgStyle(tmpl.qrPage)
-    return Object.keys(qrBg).length > 0 ? qrBg : { backgroundColor: '#0d1428' }
-  }
+  if (slide.type === 'qr_page') return bgStyle(tmpl.qrPage)
   if (slide.type === 'round_start')
     return bgStyle(tmpl.roundStart as BgCfg | undefined)
   if (slide.type === 'page') {

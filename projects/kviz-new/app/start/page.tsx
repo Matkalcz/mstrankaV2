@@ -72,10 +72,7 @@ function slideBackground(slide: Slide, tmpl: TemplateConfig | null): React.CSSPr
   if (slide.type === 'question' && slide.question)
     return bgStyle(tmpl.questionTypes?.[slide.question.type])
   if (slide.type === 'separator') return bgStyle(tmpl.separator)
-  if (slide.type === 'qr_page') {
-    const qrBg = bgStyle(tmpl.qrPage)
-    return Object.keys(qrBg).length > 0 ? qrBg : { backgroundColor: '#0d1428' }
-  }
+  if (slide.type === 'qr_page') return bgStyle(tmpl.qrPage)
   if (slide.type === 'round_start') return bgStyle(tmpl.roundStart as BgCfg | undefined)
   if (slide.type === 'page') {
     const page = slide.templatePageId
@@ -230,15 +227,15 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
   if (slide.type === 'qr_page') {
     return (
-      <div className="flex h-full">
-        <div className="w-1/2 flex flex-col items-center justify-center gap-8 px-20">
-          <div className="bg-white p-6 rounded-3xl shadow-2xl">
-            <QRCodeSVG value={startUrl} size={300} level="M" />
+      <div className="flex flex-col sm:flex-row h-full overflow-hidden">
+        <div className="flex flex-col items-center justify-center gap-4 sm:gap-8 sm:w-1/2 h-full px-6 sm:px-20">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl">
+            <QRCodeSVG value={startUrl} size={220} level="M" />
           </div>
-          <p className="font-mono text-lg text-center" style={{ color: textColor, opacity: 0.45 }}>{startUrl}</p>
+          <p className="font-mono text-xs sm:text-lg text-center break-all max-w-xs sm:max-w-none" style={{ color: textColor, opacity: 0.45 }}>{startUrl}</p>
         </div>
         {(slide.title || slide.content) && (
-          <div className="w-1/2 flex flex-col items-center justify-center gap-6 px-20 text-center border-l border-white/[0.08]">
+          <div className="hidden sm:flex w-1/2 flex-col items-center justify-center gap-6 px-20 text-center border-l border-white/[0.08]">
             {slide.title && <h2 className="text-5xl font-black leading-tight" style={{ color: textColor }}>{slide.title}</h2>}
             {slide.content && <p className="text-2xl max-w-xl" style={{ color: textColor, opacity: 0.8 }}>{slide.content}</p>}
           </div>
@@ -485,7 +482,7 @@ export default function StartPage() {
   const fontFamily = tmpl?.fontFamily || undefined
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden select-none"
+    <div className="h-[100dvh] flex flex-col overflow-hidden select-none"
       style={{ fontFamily, ...(hasBg ? bg : { background: '#08090f' }) }}>
       <div className="flex-1 overflow-hidden">
         <SlideView slide={slide} phase={phase} tmpl={tmpl} slideIdx={safeIdx} slides={slides} />
