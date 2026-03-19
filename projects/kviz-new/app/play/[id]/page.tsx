@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music,
+  ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music, Play,
   ImageIcon, Layers, AlignLeft, QrCode, PanelLeftClose, PanelLeftOpen,
   RotateCcw
 } from 'lucide-react'
@@ -143,14 +143,10 @@ function getMaxPhase(slide: Slide): number {
   if (!slide.question) return 0
   const q = slide.question
   if (q.type === 'bonus') return (q.options?.length ?? 0)
-  if (slide.noAnswerPhase) {
-    // Před oddělovačem: audio/video přehraje (fáze 1), ale odpověď se nezobrazí
-    if (q.type === 'audio' || q.type === 'video') return 1
-    return 0  // prostá/abcdef: přejdi rovnou dál
-  }
-  if (q.type === 'audio') return 2   // fáze 1 = přehrát, fáze 2 = odpověď
-  if (q.type === 'video') return 2
-  return 1                           // fáze 1 = zobraz odpověď
+  // Před oddělovačem: žádná fáze odpovědi (audio přehrávač vždy viditelný, video fullscreen přes modal)
+  if (slide.noAnswerPhase) return 0
+  // Po oddělovači: 1 fáze — otázka → odpověď (stejně jako prostá otázka)
+  return 1
 }
 
 // ─── Ikona a popis slidů (sidebar) ───────────────────────────────────────────
@@ -347,13 +343,6 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
 }) {
   const q = slide.question!
   const showAnswer = slide.showAnswer || phase >= 1
-  const audioRef = useRef<HTMLAudioElement>(null)
-
-  useEffect(() => {
-    if (q.type === 'audio' && phase === 1 && audioRef.current) {
-      audioRef.current.play().catch(() => {})
-    }
-  }, [phase, q.type])
 
   const opts = (q.options || []).map(o => ({
     text: o.text,
@@ -432,16 +421,14 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* audio */}
+        {/* audio — přehrávač vždy viditelný, moderátor si pustí ručně */}
         {q.type === 'audio' && (
-          <div className="flex flex-col items-center gap-6">
-            {phase >= 1 && (
-              <div className="flex flex-col items-center gap-3">
-                <Volume2 size={48} className="text-cyan-400 animate-pulse" />
-                <audio ref={audioRef} controls src={q.media_url || ''} className="w-80" />
-              </div>
-            )}
-            {phase >= 2 && (
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex flex-col items-center gap-3">
+              <Volume2 size={36} className="text-cyan-400" />
+              <audio controls src={q.media_url || ''} className="w-80" />
+            </div>
+            {showAnswer && q.correct_answer && (
               <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
               </div>
@@ -449,19 +436,26 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* video */}
-        {q.type === 'video' && (
-          <div className="flex flex-col items-center gap-6">
-            {phase === 0 && q.media_url && (
-              <div className="flex items-center gap-3" style={{ color: textColor, opacity: 0.5 }}>
-                <Video size={28} className="text-pink-400" />
-                <span className="truncate max-w-md font-mono text-sm">{q.media_url}</span>
-              </div>
-            )}
-            {phase >= 1 && q.media_url && (
-              <video src={q.media_url} controls autoPlay className="max-h-56 rounded-xl border border-white/10" />
-            )}
-            {phase >= 2 && (
+        {/* video — náhled vždy viditelný; fullscreen přes modal (před oddělovačem), odpověď po oddělovači */}
+        {q.type === 'video' && q.media_url && (
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative inline-block">
+              <video
+                src={q.media_url}
+                preload="auto"
+                muted
+                className="max-h-48 rounded-xl border border-white/10 object-contain bg-black"
+              />
+              {slide.noAnswerPhase && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl pointer-events-none">
+                  <div className="flex items-center gap-2 bg-green-600/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+                    <Play size={16} className="text-white" fill="white" />
+                    <span className="text-white text-xs font-bold tracking-wide">Vpřed = Fullscreen</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            {showAnswer && q.correct_answer && (
               <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
               </div>
@@ -533,6 +527,8 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(true)
   const [tmpl, setTmpl] = useState<TemplateConfig | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [videoWatched, setVideoWatched] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetch(`/api/quizzes/${quizId}`)
@@ -594,12 +590,20 @@ export default function PlayPage() {
 
   const handleForward = useCallback(() => {
     if (!currentSlide) return
+    // Video před oddělovačem: první stisk = fullscreen, druhý = další slide
+    if (currentSlide.question?.type === 'video' && currentSlide.noAnswerPhase) {
+      if (!videoWatched.has(slideIndex)) {
+        setVideoWatched(prev => new Set([...prev, slideIndex]))
+        setVideoModalOpen(true)
+        return
+      }
+    }
     if (phase < maxPhase) {
       const p = phase + 1; setPhase(p); pushState(slideIndex, p)
     } else if (slideIndex < slides.length - 1) {
       const si = slideIndex + 1; setSlideIndex(si); setPhase(0); pushState(si, 0)
     }
-  }, [currentSlide, phase, maxPhase, slideIndex, slides.length, pushState])
+  }, [currentSlide, phase, maxPhase, slideIndex, slides.length, videoWatched, pushState])
 
   const handleBack = useCallback(() => {
     if (phase > 0) {
@@ -650,7 +654,10 @@ export default function PlayPage() {
 
   const slide = slides[slideIndex]
   const canGoBack = slideIndex > 0 || phase > 0
-  const canGoForward = slideIndex < slides.length - 1 || phase < maxPhase
+  const isVideoBeforeSeparator = slide?.question?.type === 'video' && slide?.noAnswerPhase
+  const canGoForward = isVideoBeforeSeparator
+    ? !videoWatched.has(slideIndex) || slideIndex < slides.length - 1 || phase < maxPhase
+    : slideIndex < slides.length - 1 || phase < maxPhase
   const canSkip = slideIndex < slides.length - 1
 
   const textColor = tmpl?.textColor || '#ffffff'
@@ -783,6 +790,26 @@ export default function PlayPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Video fullscreen modal ── */}
+      {videoModalOpen && currentSlide?.question?.type === 'video' && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          <video
+            src={currentSlide.question.media_url || ''}
+            controls
+            autoPlay
+            className="max-w-full max-h-full"
+            onEnded={() => setVideoModalOpen(false)}
+          />
+          <button
+            onClick={() => setVideoModalOpen(false)}
+            title="Zavřít video (X)"
+            className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 active:scale-95 flex items-center justify-center transition-all shadow-xl">
+            <X size={24} className="text-white" />
+          </button>
+        </div>
+      )}
+
     </div>
   )
 }

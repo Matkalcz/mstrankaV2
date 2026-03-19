@@ -1,7 +1,7 @@
 // app/watch/[id]/page.tsx — Veřejný fullscreen pohled (diváci / projektor)
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Volume2, Video } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -165,18 +165,11 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   slide: Slide; phase: number; tmpl: TemplateConfig | null; slideIdx: number; slides: Slide[]
 }) {
   const q = slide.question
-  const audioRef = useRef<HTMLAudioElement>(null)
 
   const textColor = tmpl?.textColor || '#ffffff'
   const accentColor = tmpl?.accentColor || '#8b5cf6'
   const correctColor = tmpl?.correctColor || '#10b981'
   const { roundNumber, questionInRound } = computeSlideInfo(slides, slideIdx)
-
-  useEffect(() => {
-    if (q?.type === 'audio' && phase === 1 && audioRef.current) {
-      audioRef.current.play().catch(() => {})
-    }
-  }, [phase, q?.type])
 
   const startUrl = typeof window !== 'undefined'
     ? `${window.location.protocol}//${window.location.host}/start`
@@ -329,15 +322,14 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           </div>
         )}
 
+        {/* audio — přehrávač vždy viditelný */}
         {q.type === 'audio' && (
           <div className="flex flex-col items-center gap-8 pb-4">
-            {phase >= 1 && (
-              <div className="flex flex-col items-center gap-4">
-                <Volume2 size={72} className="text-cyan-400 animate-pulse" />
-                <audio ref={audioRef} controls src={q.media_url || ''} className="w-[500px]" />
-              </div>
-            )}
-            {phase >= 2 && (
+            <div className="flex flex-col items-center gap-4">
+              <Volume2 size={72} className="text-cyan-400" />
+              <audio controls src={q.media_url || ''} className="w-[500px]" />
+            </div>
+            {showAnswer && q.correct_answer && (
               <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
               </div>
@@ -345,12 +337,11 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           </div>
         )}
 
-        {q.type === 'video' && (
+        {/* video — náhled vždy, odpověď po oddělovači */}
+        {q.type === 'video' && q.media_url && (
           <div className="flex flex-col items-center gap-6 pb-4">
-            {phase >= 1 && q.media_url && (
-              <video src={q.media_url} controls autoPlay className="max-h-80 rounded-2xl border border-white/10" />
-            )}
-            {phase >= 2 && (
+            <video src={q.media_url} preload="auto" muted className="max-h-80 rounded-2xl border border-white/10 object-contain bg-black" />
+            {showAnswer && q.correct_answer && (
               <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
               </div>
