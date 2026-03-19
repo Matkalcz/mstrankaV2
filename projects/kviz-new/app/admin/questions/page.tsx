@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Pencil, Trash2, Plus, Search, HelpCircle, Tag, Layers, BarChart2, ChevronDown, Check } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
+import { QUESTION_TYPE_LABEL, DIFFICULTY_LABEL } from "@/lib/questionTypes"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
 type Difficulty   = "easy" | "medium" | "hard"
@@ -76,18 +77,18 @@ function formatDate(s: string) {
 }
 
 const TYPE_META: Record<QuestionType, { label: string; bg: string; text: string }> = {
-  simple: { label: "Prostá",     bg: "bg-blue-500/20",   text: "text-blue-300" },
-  abcdef: { label: "ABCDEF",     bg: "bg-violet-500/20", text: "text-violet-300" },
-  bonus:  { label: "Bonus",      bg: "bg-amber-500/20",  text: "text-amber-300" },
-  audio:  { label: "Audio",      bg: "bg-cyan-500/20",   text: "text-cyan-300" },
-  video:  { label: "Video",      bg: "bg-pink-500/20",   text: "text-pink-300" },
-  image:  { label: "Obrázková",  bg: "bg-rose-500/20",   text: "text-rose-300" },
+  simple: { label: QUESTION_TYPE_LABEL.simple, bg: "bg-blue-500/20",   text: "text-blue-300" },
+  abcdef: { label: QUESTION_TYPE_LABEL.abcdef, bg: "bg-violet-500/20", text: "text-violet-300" },
+  bonus:  { label: QUESTION_TYPE_LABEL.bonus,  bg: "bg-amber-500/20",  text: "text-amber-300" },
+  audio:  { label: QUESTION_TYPE_LABEL.audio,  bg: "bg-cyan-500/20",   text: "text-cyan-300" },
+  video:  { label: QUESTION_TYPE_LABEL.video,  bg: "bg-pink-500/20",   text: "text-pink-300" },
+  image:  { label: QUESTION_TYPE_LABEL.image,  bg: "bg-rose-500/20",   text: "text-rose-300" },
 }
 
 const DIFF_META: Record<Difficulty, { label: string; dot: string }> = {
-  easy:   { label: "Lehká",   dot: "bg-emerald-400" },
-  medium: { label: "Střední", dot: "bg-amber-400" },
-  hard:   { label: "Těžká",   dot: "bg-red-400" },
+  easy:   { label: DIFFICULTY_LABEL.easy,   dot: "bg-emerald-400" },
+  medium: { label: DIFFICULTY_LABEL.medium, dot: "bg-amber-400" },
+  hard:   { label: DIFFICULTY_LABEL.hard,   dot: "bg-red-400" },
 }
 
 export default function QuestionsPage() {

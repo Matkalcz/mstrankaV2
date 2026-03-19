@@ -9,6 +9,7 @@ import {
   SlidersHorizontal, QrCode, LayoutTemplate, Pencil
 } from 'lucide-react'
 import Link from 'next/link'
+import { QUESTION_TYPE_LABEL, DIFFICULTY_LABEL } from '@/lib/questionTypes'
 
 // ─── Typy ─────────────────────────────────────────────────────────────────────
 
@@ -69,10 +70,8 @@ const SLIDE_META: Record<SlideType, { label: string; color: string; bg: string; 
   qr_page:     { label: 'QR stránka',  color: 'text-cyan-300',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/25',   icon: QrCode },
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  simple: 'Prostá', abcdef: 'ABCDEF', bonus: 'Bonus', audio: 'Audio', video: 'Video', image: 'Obrázková'
-}
-const DIFF_LABELS: Record<string, string> = { easy: 'Lehká', medium: 'Střední', hard: 'Těžká' }
+const TYPE_LABELS = QUESTION_TYPE_LABEL as Record<string, string>
+const DIFF_LABELS = DIFFICULTY_LABEL as Record<string, string>
 const DIFF_COLORS: Record<string, string> = {
   easy: 'text-emerald-400', medium: 'text-amber-400', hard: 'text-red-400'
 }

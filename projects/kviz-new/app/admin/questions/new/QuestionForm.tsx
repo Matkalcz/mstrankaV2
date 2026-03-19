@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Plus, Trash2, Save, Loader2, Tag, X, Check, Upload, XCircle } from "lucide-react"
 import Link from "next/link"
+import { QUESTION_TYPE_LABEL, QUESTION_TYPE_LABEL_FULL, DIFFICULTY_LABEL } from "@/lib/questionTypes"
 
 type QuestionType = "simple" | "abcdef" | "bonus" | "audio" | "video" | "image"
 type Difficulty = "easy" | "medium" | "hard"
@@ -42,20 +43,8 @@ interface FormState {
   options: Option[]
 }
 
-const TYPE_LABELS: Record<QuestionType, string> = {
-  simple: "Otázka",
-  abcdef: "AB otázka",
-  bonus:  "Bonusová",
-  audio:  "Audio",
-  video:  "Video",
-  image:  "Obrázková",
-}
-
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy:   "Lehká",
-  medium: "Střední",
-  hard:   "Těžká",
-}
+const TYPE_LABELS = QUESTION_TYPE_LABEL as Record<QuestionType, string>
+const DIFFICULTY_LABELS = DIFFICULTY_LABEL as Record<Difficulty, string>
 
 function getDefaultOptions(type: QuestionType): Option[] {
   if (type === "abcdef") return [{ text: "", isCorrect: false }, { text: "", isCorrect: false }]

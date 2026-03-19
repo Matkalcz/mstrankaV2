@@ -57,13 +57,14 @@ function NavItem({ href, label, icon: Icon, active }: {
 function QuickActions() {
   const router = useRouter()
   const [lastQuizId, setLastQuizId] = useState<string | null>(null)
+  const [lastQuizName, setLastQuizName] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/quizzes')
       .then(r => r.json())
       .then(data => {
         const quizzes = Array.isArray(data) ? data : []
-        if (quizzes.length > 0) setLastQuizId(quizzes[0].id)
+        if (quizzes.length > 0) { setLastQuizId(quizzes[0].id); setLastQuizName(quizzes[0].name) }
       })
       .catch(() => {})
   }, [])
@@ -76,7 +77,8 @@ function QuickActions() {
           <button
             onClick={() => router.push(`/play/${lastQuizId}`)}
             className="w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-violet-600/15 hover:bg-violet-600/28 border border-violet-500/25 text-[15px] font-bold text-violet-300 hover:text-white transition-all">
-            <Play size={16} className="text-violet-400" /> Spustit kvíz
+            <Play size={16} className="text-violet-400 shrink-0" />
+            <span className="min-w-0 truncate">{lastQuizName || 'Spustit kvíz'}</span>
           </button>
         )}
         <Link href="/admin/questions/new"
