@@ -279,7 +279,7 @@ function QuestionModal({ questions, onSelect, onClose, singleMode = false }: {
         )}
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
+        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05] admin-scroll">
           {filtered.length === 0 ? (
             <p className="px-6 py-8 text-center text-gray-600">Žádná otázka nenalezena</p>
           ) : filtered.map(q => {
@@ -451,7 +451,7 @@ function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Pa
     <div className="mt-2 space-y-2">
       <div className="flex gap-2">
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Číslo kola</label>
+          <label className="text-xs text-gray-400 font-semibold">Číslo kola</label>
           <input
             type="number"
             value={item.roundNumber || 1}
@@ -461,13 +461,13 @@ function SlideEditor({ item, onChange }: { item: SlideItem; onChange: (patch: Pa
           />
         </div>
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Název kola</label>
+          <label className="text-xs text-gray-400 font-semibold">Název kola</label>
           <input value={item.title || ''} onChange={e => onChange({ title: e.target.value })}
             placeholder="Název kola…" className={inputCls} />
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Popisek</label>
+        <label className="text-xs text-gray-400 font-semibold">Popisek</label>
         <input value={item.subtitle || ''} onChange={e => onChange({ subtitle: e.target.value })}
           placeholder="Popisek kola (nepovinný)…" className={inputCls} />
       </div>
@@ -694,11 +694,11 @@ export default function QuizBuilderPage() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── Levý panel — paleta ─────────────────────────────────────────────── */}
-        <div className="w-56 shrink-0 border-r border-white/[0.07] bg-[#0d0f1c] flex flex-col overflow-y-auto">
+        <div className="w-56 shrink-0 border-r border-white/[0.07] bg-[#0d0f1c] flex flex-col overflow-y-auto admin-scroll">
 
           {/* Šablona selector */}
           <div className="px-4 pt-4 pb-3 border-b border-white/[0.07]">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Šablona</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Šablona</p>
             <button onClick={() => setShowTemplateModal(true)}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
                 activeTemplate
@@ -713,7 +713,7 @@ export default function QuizBuilderPage() {
 
           {/* Struktura (vždy dostupná) */}
           <div className="px-4 py-3 border-b border-white/[0.07]">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Struktura</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Struktura</p>
             <div className="space-y-1.5">
               <button onClick={() => addSlide('round_start', { roundNumber: 1 })}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-colors text-sm font-medium">
@@ -728,7 +728,7 @@ export default function QuizBuilderPage() {
 
           {/* Stránky — ze šablony nebo generické */}
           <div className="px-4 py-3 border-b border-white/[0.07]">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
               {activeTemplate ? 'Prvky šablony' : 'Stránky'}
             </p>
             <div className="space-y-1.5">
@@ -782,7 +782,7 @@ export default function QuizBuilderPage() {
 
           {/* Stats */}
           <div className="px-4 py-4 space-y-2.5">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sekvence</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Sekvence</p>
             {[
               { label: 'Otázek',  value: questionCount, color: 'text-blue-300' },
               { label: 'Kol',     value: roundCount,    color: 'text-violet-300' },
@@ -803,7 +803,7 @@ export default function QuizBuilderPage() {
         </div>
 
         {/* ── Pravý panel — sekvence ─────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 admin-scroll">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
               <SlidersHorizontal size={40} className="text-gray-700" />

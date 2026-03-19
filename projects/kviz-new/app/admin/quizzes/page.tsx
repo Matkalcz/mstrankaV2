@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Plus, Search, Play, Pencil, Trash2, PlayCircle, Layers, CheckCircle2, Archive, X, Palette, Loader2 } from "lucide-react"
 import { AdminPageHeader, ActionButton, StatCard, DarkCard } from "@/components/AdminLayoutDark"
@@ -235,6 +235,7 @@ function NewQuizModal({ templates, onClose, onCreated }: {
 
 export default function QuizzesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [quizzes, setQuizzes]     = useState<Quiz[]>([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -243,6 +244,15 @@ export default function QuizzesPage() {
   const [statusFilter, setStatusFilter] = useState<Quiz["status"] | "">("")
   const [showModal, setShowModal] = useState(false)
   const [templatesForModal, setTemplatesForModal] = useState<TemplateForModal[]>([])
+
+  // Otevři modal pokud přišel z ?new=1 (ze sidebar tlačítka)
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowModal(true)
+      // Odstraň query param z URL bez reload
+      router.replace('/admin/quizzes', { scroll: false })
+    }
+  }, [searchParams, router])
 
   const load = () => {
     setLoading(true)

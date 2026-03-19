@@ -83,7 +83,7 @@ function QuickActions() {
           className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[15px] font-semibold text-gray-300 hover:text-white transition-all">
           <Plus size={16} className="text-gray-500" /> Nová otázka
         </Link>
-        <Link href="/admin/quizzes/new"
+        <Link href="/admin/quizzes?new=1"
           className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[15px] font-semibold text-gray-300 hover:text-white transition-all">
           <Plus size={16} className="text-gray-500" /> Nový kvíz
         </Link>
@@ -151,11 +151,11 @@ function AdminSidebarInner() {
 
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen text-white overflow-hidden"
+    <div className="admin-root flex h-screen text-white overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #0a0c1a 0%, #0f1122 60%, #110e20 100%)' }}>
       <AdminSidebarInner />
       {/* Main content with subtle radial gradient */}
-      <div className="flex-1 overflow-y-auto relative"
+      <div className="flex-1 overflow-y-auto relative admin-scroll"
         style={{ background: 'radial-gradient(ellipse 80% 60% at 80% 100%, rgba(109,40,217,0.08) 0%, transparent 70%)' }}>
         {children}
       </div>

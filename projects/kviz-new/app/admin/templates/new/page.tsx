@@ -97,7 +97,7 @@ function uid() { return Math.random().toString(36).slice(2) }
 function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-400 mb-1.5">{label}</label>
+      <label className="block text-sm font-semibold text-gray-300 mb-2">{label}</label>
       <div className="flex gap-2">
         <input type="color" value={value} onChange={e => onChange(e.target.value)}
           className="h-9 w-12 rounded-lg cursor-pointer border border-white/10 bg-transparent p-0.5 shrink-0" />
@@ -134,7 +134,7 @@ function BgEditor({ value, onChange, label }: {
 
   return (
     <div className="space-y-3">
-      {label && <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</p>}
+      {label && <p className="text-sm font-bold text-gray-300 mb-1">{label}</p>}
       <div className="grid grid-cols-3 gap-2">
         {(["solid", "gradient", "image"] as BgType[]).map(t => (
           <button key={t} type="button" onClick={() => set("bgType")(t)}
@@ -159,7 +159,7 @@ function BgEditor({ value, onChange, label }: {
       )}
       {value.bgType === "image" && (
         <div className="space-y-2">
-          <label className="block text-xs font-semibold text-gray-400">URL obrázku</label>
+          <label className="block text-sm font-semibold text-gray-300">URL obrázku</label>
           <input type="text" value={value.bgImage} onChange={e => set("bgImage")(e.target.value)}
             className={inputCls} placeholder="https://…/background.jpg nebo /api/media/…" />
           <label className={"flex items-center gap-2 cursor-pointer w-full justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploading ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
@@ -193,11 +193,11 @@ function SectionBlock({ title, color, preview, open, onToggle, children }: {
       <button type="button" onClick={onToggle}
         className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
         {color && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />}
-        <span className="text-sm font-semibold text-gray-200 flex-1 text-left">{title}</span>
+        <span className="text-[15px] font-semibold text-gray-100 flex-1 text-left">{title}</span>
         {preview}
         {open ? <ChevronDown size={15} className="text-gray-500 shrink-0" /> : <ChevronRight size={15} className="text-gray-500 shrink-0" />}
       </button>
-      {open && <div className="px-5 pb-5 pt-1 border-t border-white/[0.06] space-y-4">{children}</div>}
+      {open && <div className="px-5 pb-6 pt-4 border-t border-white/[0.06] space-y-5">{children}</div>}
     </div>
   )
 }

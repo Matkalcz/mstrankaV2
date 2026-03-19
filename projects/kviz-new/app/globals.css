@@ -66,3 +66,27 @@ body {
 .animate-highlight {
   animation: highlight 1s ease-out;
 }
+
+/* ── Admin dark scrollbars ─────────────────────────────────────────────────── */
+.admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,0.3) rgba(255,255,255,0.04);
+}
+.admin-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.admin-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 99px; }
+.admin-scroll::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.35); border-radius: 99px; }
+.admin-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.6); }
+
+/* Globální scrollbar pro admin stránky */
+body:has(.admin-root) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,0.3) rgba(255,255,255,0.04);
+}
+
+/* Number input — skrýt spinners, dark scheme */
+input[type=number].dark-input::-webkit-outer-spin-button,
+input[type=number].dark-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number].dark-input { -moz-appearance: textfield; }
