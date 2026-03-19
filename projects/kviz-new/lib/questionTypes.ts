@@ -6,8 +6,8 @@ export type Difficulty    = 'easy' | 'medium' | 'hard'
 
 /** Krátký popisek — pro štítky, filtry, rozbalovací seznamy */
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
-  simple: 'Prostá',
-  abcdef: 'ABCDEF',
+  simple: 'Otázka',
+  abcdef: 'Otázka AB',
   bonus:  'Bonusová',
   audio:  'Audio',
   video:  'Video',
@@ -16,8 +16,8 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
 
 /** Plný popisek — pro nadpisy formulářů apod. */
 export const QUESTION_TYPE_LABEL_FULL: Record<QuestionType, string> = {
-  simple: 'Prostá otázka',
-  abcdef: 'ABCDEF otázka',
+  simple: 'Otázka',
+  abcdef: 'Otázka AB',
   bonus:  'Bonusová otázka',
   audio:  'Audio otázka',
   video:  'Video otázka',

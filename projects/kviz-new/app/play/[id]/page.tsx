@@ -238,14 +238,18 @@ function computeSlideInfo(slides: Slide[], idx: number) {
   let questionInRound: number | undefined
   let totalInRound: number | undefined
 
-  // Find most recent round_start (don't cross a separator)
+  // Číslo kola — hledáme zpětně i přes oddělovač
+  for (let i = idx - 1; i >= 0; i--) {
+    if (slides[i].type === 'round_start') { roundNumber = slides[i].roundNumber; break }
+  }
+
+  // Pozice otázky v kole — zastavíme se na oddělovači (platí jen pro otázky před oddělovačem)
   let roundStartIdx = -1
   for (let i = idx - 1; i >= 0; i--) {
-    if (slides[i].type === 'round_start') { roundStartIdx = i; roundNumber = slides[i].roundNumber; break }
+    if (slides[i].type === 'round_start') { roundStartIdx = i; break }
     if (slides[i].type === 'separator') break
   }
 
-  // Count question position within round (only for non-answer slides)
   if (roundStartIdx >= 0 && slides[idx]?.type === 'question' && !slides[idx].showAnswer) {
     let pos = 0, total = 0
     for (let i = roundStartIdx + 1; i < slides.length; i++) {
@@ -431,7 +435,8 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           <div className="flex-1 flex flex-col gap-5 justify-center">
             <h2 className="text-4xl font-bold leading-tight" style={{ color: textColor }}>{q.text}</h2>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-2xl px-8 py-4 text-2xl font-bold border border-white/25 self-start" style={{ color: textColor }}>
+              <div className="rounded-2xl px-8 py-4 text-2xl font-bold border self-start"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -451,11 +456,15 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Záhlaví otázky — číslo nebo nadpis Bonusová otázka ── */}
+      {/* ── Záhlaví otázky — číslo nebo nadpis ── */}
       <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
         {q.type === 'bonus' ? (
           <span className="text-4xl font-black tracking-wide uppercase" style={{ color: textColor, opacity: 0.85 }}>
             Bonusová otázka
+          </span>
+        ) : q.type === 'image' ? (
+          <span className="text-4xl font-black tracking-wide uppercase" style={{ color: textColor, opacity: 0.85 }}>
+            Speciální otázka
           </span>
         ) : questionInRound !== undefined ? (
           <span className="text-7xl font-black leading-none" style={{ color: textColor }}>
@@ -464,22 +473,17 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
         ) : null}
       </div>
 
-      {/* ── Text otázky ── */}
-      <div className="flex-1 flex items-center justify-center px-12 py-4">
+      {/* ── Text otázky + odpovědi: flex-1, vycentrováno ── */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-12 py-4 min-h-0">
         <h2 className="text-4xl font-bold text-center leading-tight max-w-4xl" style={{ color: textColor }}>
           {q.text}
         </h2>
-      </div>
-
-      {/* ── Odpovědi / možnosti ── */}
-      <div className="px-12 pb-2 shrink-0">
 
         {/* simple (bez obrázku) */}
-        {q.type === 'simple' && showAnswer && (
-          <div className="flex justify-center">
-            <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
-              {q.correct_answer}
-            </div>
+        {q.type === 'simple' && showAnswer && q.correct_answer && (
+          <div className="rounded-2xl px-10 py-5 text-3xl font-bold border"
+            style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
+            {q.correct_answer}
           </div>
         )}
 
@@ -516,7 +520,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
                 <span className="text-sm font-black w-6 shrink-0" style={{ color: phase > i ? textColor : 'rgba(255,255,255,0.3)' }}>
                   {i + 1}.
                 </span>
-                <span className="text-xl font-semibold transition-all" style={{ color: phase > i ? textColor : 'transparent' }}>
+                <span className="text-xl font-bold transition-all" style={{ color: phase > i ? textColor : 'transparent' }}>
                   {opt.text}
                 </span>
               </div>
@@ -532,7 +536,8 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
               <audio controls src={q.media_url || ''} className="w-80" />
             </div>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -562,7 +567,8 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
               )}
             </div>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-2xl px-10 py-5 text-3xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -583,7 +589,8 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
               </button>
             </div>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-2xl px-10 py-4 text-2xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-2xl px-10 py-4 text-2xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}

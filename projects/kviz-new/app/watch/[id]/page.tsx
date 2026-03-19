@@ -129,9 +129,15 @@ function computeSlideInfo(slides: Slide[], idx: number) {
   let roundNumber: number | undefined
   let questionInRound: number | undefined
 
+  // Číslo kola — hledáme zpětně i přes oddělovač
+  for (let i = idx - 1; i >= 0; i--) {
+    if (slides[i].type === 'round_start') { roundNumber = slides[i].roundNumber; break }
+  }
+
+  // Pozice otázky v kole — zastavíme se na oddělovači
   let roundStartIdx = -1
   for (let i = idx - 1; i >= 0; i--) {
-    if (slides[i].type === 'round_start') { roundStartIdx = i; roundNumber = slides[i].roundNumber; break }
+    if (slides[i].type === 'round_start') { roundStartIdx = i; break }
     if (slides[i].type === 'separator') break
   }
 
@@ -333,7 +339,8 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           <div className="flex-1 flex flex-col gap-6 justify-center">
             <h2 className="text-5xl font-bold leading-tight" style={{ color: textColor }}>{q.text}</h2>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-3xl px-10 py-5 text-3xl font-bold border border-white/25 self-start" style={{ color: textColor }}>
+              <div className="rounded-3xl px-10 py-5 text-3xl font-bold border self-start"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -361,11 +368,15 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Záhlaví otázky — číslo nebo nadpis Bonusová otázka ── */}
+      {/* ── Záhlaví otázky — číslo nebo nadpis ── */}
       <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
         {q.type === 'bonus' ? (
           <span className="text-4xl font-black tracking-wide uppercase" style={{ color: textColor, opacity: 0.85 }}>
             Bonusová otázka
+          </span>
+        ) : q.type === 'image' ? (
+          <span className="text-4xl font-black tracking-wide uppercase" style={{ color: textColor, opacity: 0.85 }}>
+            Speciální otázka
           </span>
         ) : questionInRound !== undefined ? (
           <span className="text-7xl font-black leading-none" style={{ color: textColor }}>
@@ -374,26 +385,21 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
         ) : null}
       </div>
 
-      {/* ── Text otázky ── */}
-      <div className="flex-1 flex items-center justify-center px-20 py-4">
+      {/* ── Text otázky + odpovědi: flex-1, vycentrováno ── */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-20 py-4 min-h-0">
         <h2 className="text-5xl font-bold text-center leading-tight max-w-5xl" style={{ color: textColor }}>
           {q.text}
         </h2>
-      </div>
 
-      {/* ── Odpovědi ── */}
-      <div className="px-20 pb-4 shrink-0">
-
-        {q.type === 'simple' && showAnswer && (
-          <div className="flex justify-center pb-4">
-            <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
-              {q.correct_answer}
-            </div>
+        {q.type === 'simple' && showAnswer && q.correct_answer && (
+          <div className="rounded-3xl px-14 py-6 text-4xl font-bold border"
+            style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
+            {q.correct_answer}
           </div>
         )}
 
         {q.type === 'abcdef' && opts.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 max-w-5xl mx-auto w-full pb-4">
+          <div className="grid grid-cols-2 gap-4 max-w-5xl mx-auto w-full">
             {opts.map((opt, i) => {
               const col = OPTION_COLORS[i] || OPTION_COLORS[0]
               return (
@@ -419,7 +425,7 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
         )}
 
         {q.type === 'bonus' && !slide.noAnswerPhase && (
-          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full pb-4">
+          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full">
             {opts.map((opt, i) => (
               <div key={i} className="rounded-2xl px-8 py-4 flex items-center gap-6 border transition-all duration-500"
                 style={phase > i
@@ -428,7 +434,7 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
                 <span className="text-xl font-black w-8 shrink-0" style={{ color: phase > i ? textColor : 'rgba(255,255,255,0.2)' }}>
                   {i + 1}.
                 </span>
-                <span className="text-2xl font-semibold transition-colors duration-500" style={{ color: phase > i ? textColor : 'transparent' }}>
+                <span className="text-2xl font-bold transition-colors duration-500" style={{ color: phase > i ? textColor : 'transparent' }}>
                   {opt.text}
                 </span>
               </div>
@@ -438,13 +444,14 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
         {/* audio — přehrávač vždy viditelný */}
         {q.type === 'audio' && (
-          <div className="flex flex-col items-center gap-8 pb-4">
+          <div className="flex flex-col items-center gap-8">
             <div className="flex flex-col items-center gap-4">
               <Volume2 size={72} className="text-cyan-400" />
               <audio controls src={q.media_url || ''} className="w-[500px]" />
             </div>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -453,10 +460,11 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
         {/* video — náhled vždy, odpověď po oddělovači */}
         {q.type === 'video' && q.media_url && (
-          <div className="flex flex-col items-center gap-6 pb-4">
+          <div className="flex flex-col items-center gap-6">
             <video src={q.media_url} preload="auto" muted className="max-h-80 rounded-2xl border border-white/10 object-contain bg-black" />
             {showAnswer && q.correct_answer && (
-              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-3xl px-14 py-6 text-4xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}
@@ -465,7 +473,7 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
 
         {/* Speciální (image) */}
         {q.type === 'image' && q.media_url && (
-          <div className="flex flex-col items-center gap-6 pb-4">
+          <div className="flex flex-col items-center gap-6">
             <div className="relative inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={q.media_url} alt="" className="max-h-72 rounded-2xl object-contain" />
@@ -477,7 +485,8 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
               </button>
             </div>
             {showAnswer && q.correct_answer && (
-              <div className="rounded-3xl px-14 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
+              <div className="rounded-3xl px-14 py-5 text-3xl font-bold border"
+                style={{ color: correctColor, borderColor: correctColor, backgroundColor: correctColor + '22' }}>
                 {q.correct_answer}
               </div>
             )}

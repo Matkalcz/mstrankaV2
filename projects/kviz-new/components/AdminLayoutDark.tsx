@@ -100,7 +100,7 @@ function AdminSidebarInner() {
   const pathname = usePathname()
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href)
-  const [avatarSrc, setAvatarSrc] = useState(AVATAR_URL)
+  const [avatarSrc, setAvatarSrc] = useState(AVATAR_FALLBACK)
 
   return (
     <aside className="w-[260px] shrink-0 flex flex-col bg-[#090b16] border-r border-white/[0.06]"
