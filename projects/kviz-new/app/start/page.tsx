@@ -95,18 +95,22 @@ function buildSlides(quiz: QuizData): Slide[] {
   const hasSeparator = sequence.some(item => item.type === 'separator')
   const qMap = new Map(questions.map(q => [q.id, q]))
   const slides: Slide[] = []
+  let sectionQuestions: QuestionData[] = []
 
   for (const item of sequence) {
     if (item.type === 'question') {
       if (!item.questionId) continue // prázdný slot ze skeletonu
       const q = qMap.get(item.questionId)
-      if (q) slides.push({ type: 'question', question: q, noAnswerPhase: hasSeparator })
+      if (q) {
+        slides.push({ type: 'question', question: q, noAnswerPhase: hasSeparator })
+        if (hasSeparator) sectionQuestions.push(q)
+      }
     } else if (item.type === 'separator') {
       slides.push({ type: 'separator', title: item.title })
-      const prevQ = slides
-        .filter(s => s.type === 'question' && !s.showAnswer)
-        .map(s => ({ type: 'question' as SlideType, question: s.question!, noAnswerPhase: false }))
-      slides.push(...prevQ)
+      for (const q of sectionQuestions) {
+        slides.push({ type: 'question', question: q, noAnswerPhase: false })
+      }
+      sectionQuestions = []
     } else if (item.type === 'round_start') {
       slides.push({ type: 'round_start', title: item.title, subtitle: item.subtitle, roundNumber: item.roundNumber })
     } else if (item.type === 'qr_page') {

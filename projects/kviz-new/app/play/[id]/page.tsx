@@ -103,26 +103,27 @@ function buildSlides(quiz: QuizData): Slide[] {
 
   const qMap = new Map(quiz.questions.map(q => [q.id, q]))
   const slides: Slide[] = []
+  // Otázky aktuální sekce (od posledního oddělovače) — resetuje se po každém oddělovači
+  let sectionQuestions: QuestionData[] = []
 
   for (const item of quiz.sequence) {
     if (item.type === 'question') {
       const q = qMap.get(item.questionId)
-      if (q) slides.push({
-        type: 'question',
-        question: q,
-        noAnswerPhase: hasSeparator,   // přeskočíme odpověď — přijde po oddělovači
-      })
+      if (q) {
+        slides.push({
+          type: 'question',
+          question: q,
+          noAnswerPhase: hasSeparator,   // přeskočíme odpověď — přijde po oddělovači
+        })
+        if (hasSeparator) sectionQuestions.push(q)
+      }
     } else if (item.type === 'separator') {
       slides.push({ type: 'separator', title: item.title })
-      // Po oddělovači: každá otázka se znovu zobrazí — nejdříve bez odpovědi, pak na klik "Zobrazit odpověď"
-      const prevQuestions = slides
-        .filter(s => s.type === 'question' && !s.showAnswer)
-        .map(s => ({
-          type: 'question' as SlideType,
-          question: s.question!,
-          noAnswerPhase: false,   // má fázi zobrazení odpovědi
-        }))
-      slides.push(...prevQuestions)
+      // Po oddělovači: pouze otázky AKTUÁLNÍ sekce se znovu zobrazí s odpověďmi
+      for (const q of sectionQuestions) {
+        slides.push({ type: 'question', question: q, noAnswerPhase: false })
+      }
+      sectionQuestions = []   // reset pro další sekci
     } else if (item.type === 'round_start') {
       slides.push({ type: 'round_start', title: item.title, subtitle: item.subtitle, roundNumber: item.roundNumber })
     } else if (item.type === 'qr_page') {
