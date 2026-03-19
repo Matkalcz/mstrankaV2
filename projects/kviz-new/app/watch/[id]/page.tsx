@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { Volume2, Video } from 'lucide-react'
+import { Volume2, Video, Maximize2, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
 // ─── Typy ─────────────────────────────────────────────────────────────────────
@@ -165,6 +165,7 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
   slide: Slide; phase: number; tmpl: TemplateConfig | null; slideIdx: number; slides: Slide[]
 }) {
   const q = slide.question
+  const [imgModal, setImgModal] = useState(false)
 
   const textColor = tmpl?.textColor || '#ffffff'
   const accentColor = tmpl?.accentColor || '#8b5cf6'
@@ -349,15 +350,31 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           </div>
         )}
 
-        {q.type === 'image' && (
+        {q.type === 'image' && q.media_url && (
           <div className="flex flex-col items-center gap-6 pb-4">
-            {q.media_url && (
-              // eslint-disable-next-line @next/next/no-img-element
+            <div className="relative inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={q.media_url} alt="" className="max-h-72 rounded-2xl object-contain" />
-            )}
+              <button
+                onClick={() => setImgModal(true)}
+                title="Maximalizovat"
+                className="absolute top-2 right-2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all opacity-70 hover:opacity-100">
+                <Maximize2 size={16} className="text-white" />
+              </button>
+            </div>
             {showAnswer && q.correct_answer && (
               <div className="rounded-3xl px-14 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
+              </div>
+            )}
+            {imgModal && (
+              <div className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6" onClick={() => setImgModal(false)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={q.media_url} alt="" className="max-w-full max-h-full object-contain rounded-xl" onClick={e => e.stopPropagation()} />
+                <button onClick={() => setImgModal(false)}
+                  className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-all shadow-xl">
+                  <X size={24} className="text-white" />
+                </button>
               </div>
             )}
           </div>

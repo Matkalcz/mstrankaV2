@@ -2,7 +2,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { HardDrive, Trash2, RefreshCw, AlertTriangle, Music, Video, FileImage, File, Server, ScanSearch } from 'lucide-react'
+import { HardDrive, Trash2, RefreshCw, AlertTriangle, Music, Video, FileImage, File, Server, ScanSearch, BookOpen, GraduationCap } from 'lucide-react'
+import Link from 'next/link'
 import { AdminPageHeader } from '@/components/AdminLayoutDark'
 
 interface MediaQuestion {
@@ -122,7 +123,35 @@ export default function SettingsPage() {
 
       <div className="px-8 py-6 space-y-6 max-w-5xl">
 
-        {/* ── Tiles grid ── */}
+        {/* ── Info tiles ── */}
+        <div className="grid grid-cols-4 gap-4">
+
+          {/* Dokumentace */}
+          <Link href="/admin/docs"
+            className="rounded-2xl border border-white/[0.08] bg-[#191b2e] p-5 flex flex-col gap-3 hover:border-violet-500/30 hover:bg-[#1e2040] transition-all group">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+              <BookOpen size={20} className="text-violet-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">Dokumentace</p>
+              <p className="text-xs text-gray-500 mt-0.5">Technický popis systému</p>
+            </div>
+          </Link>
+
+          {/* Návod — dead tile */}
+          <div className="rounded-2xl border border-white/[0.05] bg-[#191b2e]/50 p-5 flex flex-col gap-3 opacity-50 cursor-not-allowed">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <GraduationCap size={20} className="text-amber-400/60" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white/60">Návod</p>
+              <p className="text-xs text-gray-600 mt-0.5">Připravujeme…</p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Storage tiles ── */}
         <div className="grid grid-cols-3 gap-4">
 
           {/* Úložiště médií — col-span-1 */}

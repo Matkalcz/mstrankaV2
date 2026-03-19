@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music, Play,
+  ChevronLeft, ChevronRight, Eye, X, Volume2, Video, Music, Play, Maximize2,
   ImageIcon, Layers, AlignLeft, QrCode, PanelLeftClose, PanelLeftOpen,
   RotateCcw
 } from 'lucide-react'
@@ -343,6 +343,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
 }) {
   const q = slide.question!
   const showAnswer = slide.showAnswer || phase >= 1
+  const [imgModal, setImgModal] = useState(false)
 
   const opts = (q.options || []).map(o => ({
     text: o.text,
@@ -464,15 +465,41 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
         )}
 
         {/* image */}
-        {q.type === 'image' && (
+        {/* image — náhled s tlačítkem pro maximalizaci */}
+        {q.type === 'image' && q.media_url && (
           <div className="flex flex-col items-center gap-4">
-            {q.media_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={q.media_url} alt="" className="max-h-56 rounded-xl object-contain" />
-            )}
+            <div className="relative inline-block group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={q.media_url} alt="" className="max-h-52 rounded-xl object-contain" />
+              <button
+                onClick={() => setImgModal(true)}
+                title="Maximalizovat"
+                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all opacity-70 hover:opacity-100">
+                <Maximize2 size={14} className="text-white" />
+              </button>
+            </div>
             {showAnswer && q.correct_answer && (
               <div className="rounded-2xl px-10 py-4 text-2xl font-bold border border-white/25" style={{ color: textColor }}>
                 {q.correct_answer}
+              </div>
+            )}
+            {/* Fullscreen modal */}
+            {imgModal && (
+              <div
+                className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6"
+                onClick={() => setImgModal(false)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={q.media_url}
+                  alt=""
+                  className="max-w-full max-h-full object-contain rounded-xl"
+                  onClick={e => e.stopPropagation()}
+                />
+                <button
+                  onClick={() => setImgModal(false)}
+                  className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 active:scale-95 flex items-center justify-center transition-all shadow-xl">
+                  <X size={24} className="text-white" />
+                </button>
               </div>
             )}
           </div>
