@@ -142,10 +142,10 @@ function buildSlides(quiz: QuizData): Slide[] {
 function getMaxPhase(slide: Slide): number {
   if (!slide.question) return 0
   const q = slide.question
-  if (q.type === 'bonus') return (q.options?.length ?? 0)
-  // Před oddělovačem: žádná fáze odpovědi (audio přehrávač vždy viditelný, video fullscreen přes modal)
+  // Před oddělovačem: žádné fáze pro žádný typ (bonus zobrazí odpovědi až za oddělovačem)
   if (slide.noAnswerPhase) return 0
-  // Po oddělovači: 1 fáze — otázka → odpověď (stejně jako prostá otázka)
+  // Po oddělovači: bonus = krokové odhalování, ostatní = 1 fáze
+  if (q.type === 'bonus') return (q.options?.length ?? 0)
   return 1
 }
 
@@ -404,9 +404,9 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* bonus */}
-        {q.type === 'bonus' && (
-          <div className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
+        {/* bonus — za oddělovačem krokové odhalování, před oddělovačem nic */}
+        {q.type === 'bonus' && !slide.noAnswerPhase && (
+          <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto w-full">
             {opts.map((opt, i) => (
               <div key={i} className="rounded-xl px-6 py-3.5 flex items-center gap-4 border transition-all duration-300"
                 style={phase > i

@@ -305,8 +305,8 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           </div>
         )}
 
-        {q.type === 'bonus' && (
-          <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full pb-4">
+        {q.type === 'bonus' && !slide.noAnswerPhase && (
+          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full pb-4">
             {opts.map((opt, i) => (
               <div key={i} className="rounded-2xl px-8 py-4 flex items-center gap-6 border transition-all duration-500"
                 style={phase > i
