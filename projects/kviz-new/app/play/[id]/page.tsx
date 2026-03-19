@@ -354,13 +354,17 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Číslo otázky — velké, uprostřed ── */}
+      {/* ── Záhlaví otázky — číslo nebo nadpis Bonusová otázka ── */}
       <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
-        {questionInRound !== undefined && (
+        {q.type === 'bonus' ? (
+          <span className="text-4xl font-black tracking-wide uppercase" style={{ color: textColor, opacity: 0.85 }}>
+            Bonusová otázka
+          </span>
+        ) : questionInRound !== undefined ? (
           <span className="text-7xl font-black leading-none" style={{ color: textColor }}>
             {questionInRound}.
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* ── Text otázky ── */}
