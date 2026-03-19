@@ -1,7 +1,8 @@
 // app/api/media/[filename]/route.ts — slouží nahrané soubory z data/uploads/
+// Podporuje HTTP Range requesty (206 Partial Content) pro správné streamování videa/audia
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile, stat, unlink } from 'fs/promises'
-import { existsSync } from 'fs'
+import { stat, unlink } from 'fs/promises'
+import { existsSync, createReadStream } from 'fs'
 import path from 'path'
 
 const MIME_MAP: Record<string, string> = {
@@ -11,8 +12,21 @@ const MIME_MAP: Record<string, string> = {
   ogv: 'video/ogg', mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime',
 }
 
+function nodeStreamToWeb(nodeStream: ReturnType<typeof createReadStream>): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      nodeStream.on('data', (chunk) =>
+        controller.enqueue(chunk instanceof Buffer ? chunk : Buffer.from(chunk as string))
+      )
+      nodeStream.on('end', () => controller.close())
+      nodeStream.on('error', (err) => controller.error(err))
+    },
+    cancel() { nodeStream.destroy() },
+  })
+}
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
@@ -23,15 +37,49 @@ export async function GET(
     const uploadsDir = path.join(process.cwd(), 'data', 'uploads')
     const filepath = path.join(uploadsDir, filename)
     if (!existsSync(filepath)) return NextResponse.json({ error: 'Soubor nenalezen' }, { status: 404 })
+
     const ext = filename.split('.').pop()?.toLowerCase() ?? ''
     const contentType = MIME_MAP[ext] ?? 'application/octet-stream'
     const fileStat = await stat(filepath)
-    const buffer = await readFile(filepath)
-    return new NextResponse(buffer, {
+    const fileSize = fileStat.size
+
+    const rangeHeader = request.headers.get('range')
+
+    if (rangeHeader) {
+      // Parsuj Range: "bytes=start-end"
+      const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+      if (match) {
+        const start = parseInt(match[1], 10)
+        const end = match[2] ? Math.min(parseInt(match[2], 10), fileSize - 1) : fileSize - 1
+        if (start > end || start >= fileSize) {
+          return new NextResponse(null, {
+            status: 416,
+            headers: { 'Content-Range': `bytes */${fileSize}` },
+          })
+        }
+        const chunkSize = end - start + 1
+        const stream = createReadStream(filepath, { start, end })
+        return new NextResponse(nodeStreamToWeb(stream), {
+          status: 206,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': String(chunkSize),
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        })
+      }
+    }
+
+    // Celý soubor — stále streamujeme, bez načítání do bufferu
+    const stream = createReadStream(filepath)
+    return new NextResponse(nodeStreamToWeb(stream), {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Content-Length': String(fileStat.size),
+        'Content-Length': String(fileSize),
+        'Accept-Ranges': 'bytes',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     })

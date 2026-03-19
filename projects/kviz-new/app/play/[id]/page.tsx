@@ -337,9 +337,10 @@ const OPTION_COLORS = [
 ]
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, questionInRound, totalInRound }: {
+function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, questionInRound, totalInRound, videoRef }: {
   slide: Slide; phase: number; textColor: string; correctColor: string
   roundNumber?: number; questionInRound?: number; totalInRound?: number
+  videoRef?: React.RefObject<HTMLVideoElement | null>
 }) {
   const q = slide.question!
   const showAnswer = slide.showAnswer || phase >= 1
@@ -437,15 +438,18 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* video — náhled vždy viditelný; fullscreen přes modal (před oddělovačem), odpověď po oddělovači */}
+        {/* video — náhled vždy viditelný; Vpřed = native fullscreen na preloadovaném elementu */}
         {q.type === 'video' && q.media_url && (
           <div className="flex flex-col items-center gap-4">
             <div className="relative inline-block">
               <video
+                ref={videoRef}
                 src={q.media_url}
                 preload="auto"
                 muted
+                playsInline
                 className="max-h-48 rounded-xl border border-white/10 object-contain bg-black"
+                onEnded={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}) }}
               />
               {slide.noAnswerPhase && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-xl pointer-events-none">
@@ -554,8 +558,8 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(true)
   const [tmpl, setTmpl] = useState<TemplateConfig | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [videoWatched, setVideoWatched] = useState<Set<number>>(new Set())
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     fetch(`/api/quizzes/${quizId}`)
@@ -617,11 +621,17 @@ export default function PlayPage() {
 
   const handleForward = useCallback(() => {
     if (!currentSlide) return
-    // Video před oddělovačem: první stisk = fullscreen, druhý = další slide
+    // Video před oddělovačem: první stisk = native fullscreen na existující (preloaded) video
     if (currentSlide.question?.type === 'video' && currentSlide.noAnswerPhase) {
       if (!videoWatched.has(slideIndex)) {
         setVideoWatched(prev => new Set([...prev, slideIndex]))
-        setVideoModalOpen(true)
+        const videoEl = videoRef.current
+        if (videoEl) {
+          videoEl.muted = false
+          videoEl.currentTime = 0
+          videoEl.play().catch(() => {})
+          videoEl.requestFullscreen().catch(() => {})
+        }
         return
       }
     }
@@ -630,7 +640,7 @@ export default function PlayPage() {
     } else if (slideIndex < slides.length - 1) {
       const si = slideIndex + 1; setSlideIndex(si); setPhase(0); pushState(si, 0)
     }
-  }, [currentSlide, phase, maxPhase, slideIndex, slides.length, videoWatched, pushState])
+  }, [currentSlide, phase, maxPhase, slideIndex, slides.length, videoWatched, videoRef, pushState])
 
   const handleBack = useCallback(() => {
     if (phase > 0) {
@@ -771,7 +781,7 @@ export default function PlayPage() {
           {slide.type === 'page' && <PageSlide slide={slide} textColor={textColor} roundLabel={roundLabel} />}
           {slide.type === 'round_start' && <RoundStartSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
           {slide.type === 'separator' && <SeparatorSlide slide={slide} textColor={textColor} accentColor={accentColor} />}
-          {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} textColor={textColor} correctColor={correctColor} roundNumber={roundNumber} questionInRound={questionInRound} totalInRound={totalInRound} />}
+          {slide.type === 'question' && <QuestionSlide slide={slide} phase={phase} textColor={textColor} correctColor={correctColor} roundNumber={roundNumber} questionInRound={questionInRound} totalInRound={totalInRound} videoRef={videoRef} />}
           {slide.type === 'qr_page' && <QrPageSlide slide={slide} textColor={textColor} />}
         </div>
 
@@ -817,25 +827,6 @@ export default function PlayPage() {
           </button>
         </div>
       </div>
-
-      {/* ── Video fullscreen modal ── */}
-      {videoModalOpen && currentSlide?.question?.type === 'video' && (
-        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-          <video
-            src={currentSlide.question.media_url || ''}
-            controls
-            autoPlay
-            className="max-w-full max-h-full"
-            onEnded={() => setVideoModalOpen(false)}
-          />
-          <button
-            onClick={() => setVideoModalOpen(false)}
-            title="Zavřít video (X)"
-            className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 active:scale-95 flex items-center justify-center transition-all shadow-xl">
-            <X size={24} className="text-white" />
-          </button>
-        </div>
-      )}
 
     </div>
   )
