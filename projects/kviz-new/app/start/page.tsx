@@ -248,6 +248,115 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
     correct: o.correct ?? (o as any).isCorrect ?? false,
   }))
 
+  // ── ABCDEF + obrázek: dvousloupcové rozložení ─────────────────────────────
+  if (q.type === 'abcdef' && q.media_url && opts.length > 0) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-center pt-6 pb-1 shrink-0">
+          {questionInRound !== undefined && (
+            <span className="text-6xl font-black leading-none" style={{ color: textColor }}>{questionInRound}.</span>
+          )}
+        </div>
+        <div className="flex-1 flex gap-8 px-10 py-2 min-h-0">
+          <div className="w-[45%] min-h-0">
+            <div className="relative h-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={q.media_url!} alt="" className="w-full h-full object-contain rounded-2xl" />
+              <button onClick={() => setImgModal(true)} title="Maximalizovat"
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all opacity-70 hover:opacity-100">
+                <Maximize2 size={18} className="text-white" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col gap-5 justify-center min-w-0">
+            <h2 className="text-3xl font-bold leading-snug" style={{ color: textColor }}>{q.text}</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {opts.map((opt, i) => {
+                const col = OPTION_COLORS[i] || OPTION_COLORS[0]
+                return (
+                  <div key={i}
+                    className={`rounded-2xl px-5 py-4 flex items-center gap-4 border transition-all duration-300 ${showAnswer && !opt.correct ? 'opacity-25' : ''}`}
+                    style={showAnswer && opt.correct
+                      ? { borderColor: correctColor, backgroundColor: correctColor + '22', transform: 'scale(1.02)' }
+                      : { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                    <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-base font-black text-white shrink-0 ${col.label}`}>
+                      {OPTION_LETTERS[i]}
+                    </span>
+                    <span className="text-xl font-semibold leading-snug" style={{ color: textColor }}>{opt.text}</span>
+                    {showAnswer && opt.correct && <span className="ml-auto text-2xl font-bold" style={{ color: correctColor }}>✓</span>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
+          {roundNumber !== undefined && (
+            <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>Kolo {roundNumber}</span>
+          )}
+        </div>
+        {imgModal && (
+          <div className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6" onClick={() => setImgModal(false)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={q.media_url!} alt="" className="max-w-full max-h-full object-contain rounded-xl" onClick={e => e.stopPropagation()} />
+            <button onClick={() => setImgModal(false)}
+              className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-all shadow-xl">
+              <X size={24} className="text-white" />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Prostá + obrázek: obrázek vlevo, text vpravo ─────────────────────────
+  if (q.type === 'simple' && q.media_url) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
+          {questionInRound !== undefined && (
+            <span className="text-7xl font-black leading-none" style={{ color: textColor }}>{questionInRound}.</span>
+          )}
+        </div>
+        <div className="flex-1 flex gap-10 px-16 py-2 min-h-0 items-center">
+          <div className="w-[42%] self-stretch">
+            <div className="relative h-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={q.media_url!} alt="" className="w-full h-full object-contain rounded-2xl" />
+              <button onClick={() => setImgModal(true)} title="Maximalizovat"
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all opacity-70 hover:opacity-100">
+                <Maximize2 size={18} className="text-white" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col gap-6 justify-center">
+            <h2 className="text-5xl font-bold leading-tight" style={{ color: textColor }}>{q.text}</h2>
+            {showAnswer && q.correct_answer && (
+              <div className="rounded-3xl px-10 py-5 text-3xl font-bold border border-white/25 self-start" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
+          {roundNumber !== undefined && (
+            <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>Kolo {roundNumber}</span>
+          )}
+        </div>
+        {imgModal && (
+          <div className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6" onClick={() => setImgModal(false)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={q.media_url!} alt="" className="max-w-full max-h-full object-contain rounded-xl" onClick={e => e.stopPropagation()} />
+            <button onClick={() => setImgModal(false)}
+              className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-all shadow-xl">
+              <X size={24} className="text-white" />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full">
 
@@ -353,6 +462,7 @@ function SlideView({ slide, phase, tmpl, slideIdx, slides }: {
           </div>
         )}
 
+        {/* Speciální (image) */}
         {q.type === 'image' && q.media_url && (
           <div className="flex flex-col items-center gap-6 pb-4">
             <div className="relative inline-block">

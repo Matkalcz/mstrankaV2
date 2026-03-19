@@ -214,7 +214,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
       correct_answer: form.type === "bonus"
         ? (form.options[0]?.text || "")
         : form.correct_answer.trim() || null,
-      media_url: ["audio","video","image"].includes(form.type) ? form.media_url.trim() : null,
+      media_url: form.media_url.trim() || null,
       options: ["abcdef","bonus"].includes(form.type) ? form.options : [],
     }
     try {
@@ -408,6 +408,35 @@ export default function QuestionForm({ tags, question, editId }: Props) {
           </div>
         )}
 
+        {/* Obrázek — volitelný pro Prostá a ABCDEF */}
+        {(form.type === "simple" || form.type === "abcdef") && (
+          <div className={sectionCls}>
+            <label className={labelCls}>Obrázek <span className="text-gray-600 font-normal">(volitelné — změní rozložení otázky)</span></label>
+            <input type="text" value={form.media_url}
+              onChange={e => setForm(p => ({ ...p, media_url: e.target.value }))}
+              className={inputCls} placeholder="https://example.com/obrazek.jpg nebo nahrát níže" />
+            <label className={"mt-2 flex items-center gap-2 cursor-pointer justify-center py-2 rounded-lg border border-dashed text-xs font-semibold transition-all " + (uploadingMedia ? "border-violet-500/40 text-violet-400" : "border-white/[0.12] text-gray-400 hover:border-violet-500/50 hover:text-violet-300")}>
+              <Upload size={13} />
+              {uploadingMedia ? "Nahrávám…" : "Nahrát obrázek ze zařízení"}
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingMedia}
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f) }} />
+            </label>
+            {form.media_url && (
+              <div className="mt-2 space-y-1.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.media_url} alt="Náhled"
+                  className="max-h-36 rounded-lg border border-white/[0.08] object-contain w-full"
+                  onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+                  onLoad={e => { (e.target as HTMLImageElement).style.display = "block" }} />
+                <button type="button" onClick={clearMedia}
+                  className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                  <XCircle size={13} /> Odebrat obrázek
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ABCDEF */}
         {form.type === "abcdef" && (
           <div className={sectionCls}>
@@ -436,7 +465,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
                 </div>
               ))}
             </div>
-            {form.options.length < 6 && (
+            {form.options.length < 4 && (
               <button type="button" onClick={addOption}
                 className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors">
                 <Plus size={14} /> Přidat možnost {OPTION_LETTERS[form.options.length]}
@@ -540,7 +569,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
           </div>
         )}
 
-        {/* Image */}
+        {/* Speciální */}
         {form.type === "image" && (
           <div className={sectionCls + " space-y-4"}>
             <div>
@@ -567,7 +596,7 @@ export default function QuestionForm({ tags, question, editId }: Props) {
                 </div>
               )}
               <p className="text-[11px] text-gray-600 mt-1.5">
-                Klik 1 = text otázky · Klik 2 = celá obrazovka · Klik 3 = další otázka
+                Speciální otázka — obrázek je hlavním obsahem, text otázky je doplňkový
               </p>
             </div>
             <div>

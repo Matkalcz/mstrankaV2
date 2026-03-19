@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AdminPageHeader } from '@/components/AdminLayoutDark'
-import { Volume2, Video, ImageIcon, Layers, BookOpen } from 'lucide-react'
+import { Volume2, Video, ImageIcon, Layers, HelpCircle, LayoutPanelLeft } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -127,17 +127,65 @@ function MediaTab() {
         </p>
       </DocCard>
 
-      {/* Obrázková otázka */}
+      {/* Prostá otázka s obrázkem */}
+      <DocCard
+        icon={HelpCircle}
+        iconColor="text-blue-400"
+        name="Prostá otázka s obrázkem"
+        subtitle="Dvousloupcové rozložení — obrázek vlevo, text otázky vpravo"
+      >
+        <p>
+          Pokud je k otázce typu <Strong>Prostá</Strong> nahrán obrázek (<Code>media_url</Code>),
+          layout se automaticky přepne na dvousloupcový:
+          obrázek vlevo (~42 % šířky) s tlačítkem <Strong>Maximalizovat</Strong>,
+          text otázky + správná odpověď vpravo.
+        </p>
+        <p>
+          Tlačítko <Strong>Maximalizovat</Strong> (<Code>Maximize2</Code>) otevře fullscreen modal —
+          obrázek se responzivně roztáhne na celou obrazovku, zavírá se křížkem nebo kliknutím na pozadí.
+        </p>
+        <p>
+          <Strong>Před oddělovačem:</Strong> <Code>maxPhase=0</Code> — viditelný obrázek + text otázky, odpověď skrytá.
+        </p>
+        <p>
+          <Strong>Po oddělovači:</Strong> <Code>maxPhase=1</Code> — kliknutím Vpřed se zobrazí správná odpověď.
+        </p>
+      </DocCard>
+
+      {/* ABCDEF otázka s obrázkem */}
+      <DocCard
+        icon={LayoutPanelLeft}
+        iconColor="text-violet-400"
+        name="ABCDEF otázka s obrázkem"
+        subtitle="Dvousloupcové rozložení — obrázek vlevo, text + odpovědi 2×2 vpravo"
+      >
+        <p>
+          Pokud je k otázce typu <Strong>ABCDEF</Strong> nahrán obrázek, layout se přepne
+          na dvousloupcový: obrázek vlevo (~45 % šířky) s tlačítkem <Strong>Maximalizovat</Strong>,
+          vpravo text otázky + odpovědi v mřížce 2×2 (max 4 možnosti).
+        </p>
+        <p>
+          Otázky bez obrázku zachovávají původní layout (celá šířka, odpovědi 2×2 pod textem).
+          <Strong> Maximální počet možností u ABCDEF je 4</Strong> (A–D).
+        </p>
+        <p>
+          Číslo kola zůstává viditelné ve spodním footeru v obou variantách layoutu.
+        </p>
+      </DocCard>
+
+      {/* Speciální otázka */}
       <DocCard
         icon={ImageIcon}
         iconColor="text-rose-400"
-        name="Obrázková otázka"
-        subtitle="Fullscreen modal pro zobrazení obrázku"
+        name="Speciální otázka"
+        subtitle="Obrázek jako hlavní obsah — celá plocha věnovaná vizuálnímu materiálu"
       >
-        <p>Náhled obrázku vždy viditelný.</p>
         <p>
-          Tlačítko <Strong>Maximalizovat</Strong> (ikona <Code>Maximize2</Code>) v rohu obrázku otevře
-          fullscreen modal — obrázek se responzivně roztáhne na celou obrazovku.
+          Typ <Strong>Speciální</Strong> (dříve „Obrázková") je určen pro otázky,
+          kde je obrázek primárním obsahem. Obrázek zabírá střed stránky, text otázky je doplňkový.
+        </p>
+        <p>
+          Náhled vždy viditelný. Tlačítko <Strong>Maximalizovat</Strong> otevře fullscreen modal.
           Fullscreen se zavírá křížkem nebo kliknutím na pozadí.
         </p>
         <p>
@@ -145,7 +193,7 @@ function MediaTab() {
         </p>
         <p>
           <Strong>Po oddělovači:</Strong> <Code>maxPhase=1</Code> — kliknutím Vpřed se zobrazí
-          správná odpověď.
+          správná odpověď (volitelná).
         </p>
       </DocCard>
 

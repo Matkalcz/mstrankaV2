@@ -351,6 +351,103 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
     correct: o.correct ?? (o as any).isCorrect ?? false,
   }))
 
+  const renderImgThumb = (className?: string) => (
+    <div className={`relative ${className || ''}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={q.media_url!} alt="" className="w-full h-full object-contain rounded-xl" />
+      <button onClick={() => setImgModal(true)} title="Maximalizovat"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all opacity-70 hover:opacity-100">
+        <Maximize2 size={14} className="text-white" />
+      </button>
+    </div>
+  )
+
+  const imgFullscreen = imgModal ? (
+    <div className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6" onClick={() => setImgModal(false)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={q.media_url!} alt="" className="max-w-full max-h-full object-contain rounded-xl" onClick={e => e.stopPropagation()} />
+      <button onClick={() => setImgModal(false)}
+        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 active:scale-95 flex items-center justify-center transition-all shadow-xl">
+        <X size={24} className="text-white" />
+      </button>
+    </div>
+  ) : null
+
+  // ── ABCDEF + obrázek: dvousloupcové rozložení ─────────────────────────────
+  if (q.type === 'abcdef' && q.media_url && opts.length > 0) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-center pt-6 pb-1 shrink-0">
+          {questionInRound !== undefined && (
+            <span className="text-5xl font-black leading-none" style={{ color: textColor }}>{questionInRound}.</span>
+          )}
+        </div>
+        <div className="flex-1 flex gap-6 px-8 py-2 min-h-0">
+          <div className="w-[45%] min-h-0">
+            {renderImgThumb('h-full')}
+          </div>
+          <div className="flex-1 flex flex-col gap-4 justify-center min-w-0">
+            <h2 className="text-2xl font-bold leading-snug" style={{ color: textColor }}>{q.text}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {opts.map((opt, i) => (
+                <div key={i}
+                  className={`rounded-2xl px-4 py-3 flex items-center gap-3 border transition-all duration-300 ${showAnswer && !opt.correct ? 'opacity-25' : ''}`}
+                  style={showAnswer && opt.correct
+                    ? { borderColor: correctColor, backgroundColor: correctColor + '22', transform: 'scale(1.02)' }
+                    : { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white shrink-0 ${OPTION_COLORS[i]?.label || 'bg-gray-600'}`}>
+                    {OPTION_LETTERS[i]}
+                  </span>
+                  <span className="text-base font-semibold leading-snug" style={{ color: textColor }}>{opt.text}</span>
+                  {showAnswer && opt.correct && <span className="ml-auto text-xl font-bold" style={{ color: correctColor }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
+          {roundNumber !== undefined && (
+            <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>Kolo {roundNumber}</span>
+          )}
+        </div>
+        {imgFullscreen}
+      </div>
+    )
+  }
+
+  // ── Prostá + obrázek: obrázek vlevo, text vpravo ─────────────────────────
+  if (q.type === 'simple' && q.media_url) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-center pt-10 pb-2 shrink-0">
+          {questionInRound !== undefined && (
+            <span className="text-7xl font-black leading-none" style={{ color: textColor }}>{questionInRound}.</span>
+          )}
+        </div>
+        <div className="flex-1 flex gap-8 px-12 py-2 min-h-0 items-center">
+          <div className="w-[42%] self-stretch">
+            {renderImgThumb('h-full')}
+          </div>
+          <div className="flex-1 flex flex-col gap-5 justify-center">
+            <h2 className="text-4xl font-bold leading-tight" style={{ color: textColor }}>{q.text}</h2>
+            {showAnswer && q.correct_answer && (
+              <div className="rounded-2xl px-8 py-4 text-2xl font-bold border border-white/25 self-start" style={{ color: textColor }}>
+                {q.correct_answer}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-center pb-5 pt-2 shrink-0">
+          {roundNumber !== undefined && (
+            <span className="text-base font-semibold tracking-widest uppercase" style={{ color: textColor, opacity: 0.4 }}>Kolo {roundNumber}</span>
+          )}
+        </div>
+        {imgFullscreen}
+      </div>
+    )
+  }
+
+  // ── Výchozí rozložení ─────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
 
@@ -377,7 +474,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
       {/* ── Odpovědi / možnosti ── */}
       <div className="px-12 pb-2 shrink-0">
 
-        {/* simple */}
+        {/* simple (bez obrázku) */}
         {q.type === 'simple' && showAnswer && (
           <div className="flex justify-center">
             <div className="rounded-2xl px-10 py-5 text-3xl font-bold border border-white/25" style={{ color: textColor }}>
@@ -386,7 +483,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* abcdef — gray border, colored letter badge, highlight correct with correctColor */}
+        {/* abcdef (bez obrázku) */}
         {q.type === 'abcdef' && opts.length > 0 && (
           <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto w-full">
             {opts.map((opt, i) => (
@@ -472,8 +569,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
           </div>
         )}
 
-        {/* image */}
-        {/* image — náhled s tlačítkem pro maximalizaci */}
+        {/* Speciální (image) — náhled s tlačítkem pro maximalizaci */}
         {q.type === 'image' && q.media_url && (
           <div className="flex flex-col items-center gap-4">
             <div className="relative inline-block group">
@@ -491,25 +587,7 @@ function QuestionSlide({ slide, phase, textColor, correctColor, roundNumber, que
                 {q.correct_answer}
               </div>
             )}
-            {/* Fullscreen modal */}
-            {imgModal && (
-              <div
-                className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-6"
-                onClick={() => setImgModal(false)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={q.media_url}
-                  alt=""
-                  className="max-w-full max-h-full object-contain rounded-xl"
-                  onClick={e => e.stopPropagation()}
-                />
-                <button
-                  onClick={() => setImgModal(false)}
-                  className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 active:scale-95 flex items-center justify-center transition-all shadow-xl">
-                  <X size={24} className="text-white" />
-                </button>
-              </div>
-            )}
+            {imgFullscreen}
           </div>
         )}
       </div>

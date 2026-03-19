@@ -11,7 +11,7 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   bonus:  'Bonusová',
   audio:  'Audio',
   video:  'Video',
-  image:  'Obrázková',
+  image:  'Speciální',
 }
 
 /** Plný popisek — pro nadpisy formulářů apod. */
@@ -21,7 +21,7 @@ export const QUESTION_TYPE_LABEL_FULL: Record<QuestionType, string> = {
   bonus:  'Bonusová otázka',
   audio:  'Audio otázka',
   video:  'Video otázka',
-  image:  'Obrázková otázka',
+  image:  'Speciální otázka',
 }
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
