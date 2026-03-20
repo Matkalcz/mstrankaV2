@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mstranka": {
+      "type": "http",
+      "url": "https://mcp.v2.mstranka.cz/",
+      "headers": {
+        "X-Api-Key": "msk_822251dd65802f82b1e57cb2e2dcd8ba9ec453e22ec5d129bfc812280fd391aa"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 # mStrankaV2 - Pokyny pro agenty (sloučená dokumentace)
 
 **Zdroj:** Pokyny od uživatele + dokumentace od Mateeje v workspace-mstrankaV2
-**Poslední aktualizace:** 2026-03-15
+**Poslední aktualizace:** 2026-03-20
 **POZOR:** Toto je dokumentace pro NOVÝ systém mStrankaV2, ne pro původní mStranka!
 
 ## PŘIPOJENÍ K MCP
@@ -106,6 +106,7 @@
 
 ### Sekce:
 - `add_section` - Přidá sekci na stránku
+- `get_section` - Stáhne kompletní HTML obsah konkrétní sekce (viz níže)
 - `edit_section` - Upraví sekci
 - `delete_section` - Smaže sekci
 
@@ -184,8 +185,10 @@ get_context → najdi správnou pageId → add_section nebo edit_section → pre
 
 ### U úpravy existující stránky:
 ```
-get_context → najdi pageId a relevantní sections → edit_page / edit_section → preview
+get_context → najdi sectionId → get_section (pro přesný HTML obsah) → edit_section → preview
 ```
+
+> **Tip**: `get_context` vrací seznam sekcí bez HTML obsahu. Pokud potřebuješ přesné HTML sekce (např. kvůli úpravě tříd, textu nebo struktury), vždy zavolej `get_section` se správným `sectionId`. Teprve pak uprav a pošli přes `edit_section`.
 
 ### U nového blogového článku:
 ```
@@ -219,7 +222,7 @@ Slouží pro výpis příspěvků z kategorie podle HTML šablony.
 
 **Povinný atribut**: `category` (slug kategorie)
 
-**Další atributy**: `take`, `skip`, `order`, `paging`, `pagesize`
+**Další atributy**: `take`, `skip`, `order`, `paging`, `pageSize`
 
 **Podporované `order` hodnoty**: `date`, `date asc`, `title`
 
@@ -236,6 +239,47 @@ Slouží pro výpis příspěvků z kategorie podle HTML šablony.
   <a href="[Url]">Číst dále</a>
 </posts>
 ```
+
+#### Stránkování `<posts>` — nové placeholdery (od 2026-03-20)
+
+Stránkování se **nekreslí uvnitř `<posts>`**, ale pomocí samostatných placeholderů umístěných kdekoliv v sekci:
+
+| Placeholder | Popis |
+|---|---|
+| `[NextPageUrl]` | URL další stránky (prázdný na poslední stránce) |
+| `[PrevPageUrl]` | URL předchozí stránky (prázdný na první stránce) |
+| `[PageNumber]` | Číslo aktuální stránky |
+| `[PageCount]` | Celkový počet stránek |
+
+Stránkování funguje i při více `<posts>` blocích v jedné sekci — každý blok dostane stejnou stránku, ale jiný `skip`, takže lze rozdělit posty do různých layoutů (featured + grid + list):
+
+```html
+<!-- Sekce 1: první 3 posty jako featured -->
+<posts paging="true" take="3" pageSize="9">
+  <div class="featured-card">[Title]</div>
+</posts>
+
+<!-- Statický obsah (reklama, banner) -->
+
+<!-- Sekce 2: posty 4–6 jako grid -->
+<posts paging="true" take="3" skip="3" pageSize="9">
+  <div class="grid-item">[Title]</div>
+</posts>
+
+<!-- Sekce 3: posty 7–9 jako list -->
+<posts paging="true" take="3" skip="6" pageSize="9">
+  <div class="list-item">[Title]</div>
+</posts>
+
+<!-- Navigace stránkování — umístit kdekoliv -->
+<nav class="flex gap-4">
+  <a href="[PrevPageUrl]">← Předchozí</a>
+  <span>Stránka [PageNumber] z [PageCount]</span>
+  <a href="[NextPageUrl]">Další →</a>
+</nav>
+```
+
+> Na stránce 1 se zobrazí posty 1–3, 4–6, 7–9. Na stránce 2 pak 10–12, 13–15, 16–18 atd.
 
 ### 2. `<block>`
 Vkládá obsah pojmenovaného sdíleného bloku. Správa přes `manage_block`.
