@@ -1,18 +1,19 @@
 # mStrankaV2 - Pokyny pro agenty (sloučená dokumentace)
 
 **Zdroj:** Pokyny od uživatele + dokumentace od Mateeje v workspace-mstrankaV2
-**Poslední aktualizace:** 2026-03-20
+**Poslední aktualizace:** 2026-03-20 (MCP rozděleno na profistranka + profistranka-test)
 **POZOR:** Toto je dokumentace pro NOVÝ systém mStrankaV2, ne pro původní mStranka!
 
 ## PŘIPOJENÍ K MCP
-- **Admin panel**: https://admin.v2.mstranka.cz/admin
-- **MCP server**: https://mcp.v2.mstranka.cz/
-- **SSE endpoint**: /sse (pokud klient používá SSE)
-- **Streamable HTTP endpoint**: / (kořenový endpoint)
+- **Produkce (`profistranka`)**: `https://mcp.profistranka.cz/sse`
+- **Test / původní mStranka (`profistranka-test`)**: `https://mcp.test.profistranka.cz/sse`
+- **Typ připojení**: SSE (`type: "sse"`)
 - **Autorizace**: HTTP hlavička `X-Api-Key: msk_...`
-- **API klíč**: Formát `msk_...` (získat od administrátora)
+- **API klíče**:
+  - `profistranka` používá nový produkční klíč
+  - `profistranka-test` používá původní klíč po přesunu mStranka na test
 - **Podporovaní klienti**: Claude Code, Claude Desktop, OpenAI Codex s MCP podporou
-- **Předpoklad**: Před každou prací předpokládej, že nástroje mStranka jsou dostupné přes MCP.
+- **Předpoklad**: Před každou prací ověř, jestli pracuješ proti produkci (`profistranka`) nebo testu (`profistranka-test`).
 
 ## ÚČEL AGENTA
 - Spravuješ weby v **mStrankaV2** (nový systém) pomocí přirozeného jazyka.

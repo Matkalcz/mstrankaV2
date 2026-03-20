@@ -212,72 +212,52 @@ git push origin main
 
 ## 🔌 PŘIPOJENÍ MCP
 
-### **1.1 Kontrola připojení**
-```bash
-# Zkontroluj, zda je mcporter nainstalovaný
-which mcporter
-mcporter --version
+### **1.1 Aktuální rozdělení serverů**
 
-# Zobraz seznam dostupných MCP serverů
-mcporter list
+Používej dva oddělené MCP servery:
 
-# Očekávaný výstup:
-# mcporter 0.7.3 — Listing 1 server(s) (per-server timeout: 30s)
-# - mstranka (31 tools, 0.8s)
-# ✔ Listed 1 server (1 healthy).
-```
+- **Produkce (`profistranka`)**
+  - `type: "sse"`
+  - `url: "https://mcp.profistranka.cz/sse"`
+  - používá nový produkční API klíč
 
-### **1.2 Konfigurace MCP**
-**Potřebuješ:**
-- API klíč ve formátu `msk_...` (získat od administrátora)
-- URL MCP serveru: `https://mcp.v2.mstranka.cz/`
+- **Test / původní mStranka (`profistranka-test`)**
+  - `type: "sse"`
+  - `url: "https://mcp.test.profistranka.cz/sse"`
+  - používá původní API klíč mStranka
 
-**Globální konfigurace (doporučeno):**
+### **1.2 Důležité pravidlo**
+
+- Ostré weby a běžné produkční změny dělej přes **`profistranka`**.
+- Testy, migrace a ověřování původní mStranka logiky dělej přes **`profistranka-test`**.
+- Před každou úpravou si ověř, na který server a web právě míříš.
+
+### **1.3 Konfigurace MCP**
+
 ```bash
 mkdir -p ~/.mcporter
 
 cat > ~/.mcporter/mcporter.json << EOF
 {
-  "servers": {
-    "mstranka": {
-      "transport": "http",
-      "url": "https://mcp.v2.mstranka.cz/",
+  "mcpServers": {
+    "profistranka": {
+      "type": "sse",
+      "url": "https://mcp.profistranka.cz/sse",
       "headers": {
-        "X-Api-Key": "msk_tvoje_api_klic"
+        "X-Api-Key": "msk_produkcni_klic"
+      }
+    },
+    "profistranka-test": {
+      "type": "sse",
+      "url": "https://mcp.test.profistranka.cz/sse",
+      "headers": {
+        "X-Api-Key": "msk_puvodni_klic_mstranka"
       }
     }
   }
 }
 EOF
 ```
-
----
-
-## 📁 SPRÁVA PROJEKTŮ
-
-### **2.1 Vytvoření nového projektu**
-```bash
-# 1. Vytvoř složku projektu
-mkdir -p /home/openclaw/.openclaw/workspace-mstrankaV2/projects/muj_projekt
-
-# 2. Vytvoř základní strukturu
-cd /home/openclaw/.openclaw/workspace-mstrankaV2/projects/muj_projekt
-mkdir -p images styles articles
-```
-
-### **2.2 Git workflow**
-```bash
-# Před prací vždy synchronizuj
-cd /home/openclaw/.openclaw/workspace-mstrankaV2
-git pull origin main
-
-# Po dokončení práce
-git add projects/muj_projekt/
-git commit -m "Můj projekt: popis změn"
-git push origin main
-```
-
----
 
 ## 📝 NAHRÁVÁNÍ OBSAHU
 
